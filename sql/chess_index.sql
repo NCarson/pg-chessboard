@@ -366,7 +366,8 @@ FUNCTION        1       hash_square(cpiece);
 /****************************************************************************
 -- piecesquare
 ****************************************************************************/
-CREATE FUNCTION piecesquare_in(cstring)/*{{{*/
+/*{{{*/
+CREATE FUNCTION piecesquare_in(cstring)
 RETURNS piecesquare AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION piecesquare_out(piecesquare)
@@ -399,8 +400,6 @@ CREATE OR REPLACE FUNCTION pretty(piecesquare[])
 RETURNS text[] AS $$
     select array_agg(pretty) from (select pretty(unnest($1))) t
 $$ LANGUAGE SQL IMMUTABLE STRICT;
-
-
 
 /*}}}*/
 /****************************************************************************
@@ -439,13 +438,10 @@ CREATE OR REPLACE FUNCTION pieces(board)
 RETURNS piecesquare[] AS $$
     select "_pieces"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+CREATE CAST (board as piecesquare[]) WITH FUNCTION pieces;
 
 CREATE FUNCTION piecesquares_to_board(piecesquare[], text)
 RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
---CREATE FUNCTION board_to_fen(board)
---RETURNS fen AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
---CREATE CAST (board as fen) WITH FUNCTION board_to_fen;
 
 /*---------------------------------------/
 /  ops                                   /
