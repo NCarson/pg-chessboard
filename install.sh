@@ -22,7 +22,7 @@ while getopts ":n" opt; do
   esac
 done
 
-make clean
+#make clean
 make
 sudo make uninstall
 sudo make install

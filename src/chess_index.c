@@ -19,7 +19,8 @@ PG_FUNCTION_INFO_V1(char_to_int);
 /********************************************************
 * 		util
 ********************************************************/
-Datum/*{{{*/
+/*{{{*/
+Datum
 char_to_int(PG_FUNCTION_ARGS)
 {
     char			c = PG_GETARG_CHAR(0);
@@ -283,18 +284,20 @@ void _board_footer_in(Board * b, const char * str)
     }
     b->enpassant = enpassant;
 }
-board_t *_bitboard_to_board(board_t * board, const uint64 bboard, const pieces_t * pieces)
+//XXX needs to be pfreed
+board_t *_bitboard_to_board(const Board * b)
 {
 	unsigned char		k=0;
+    board_t             *board=(board_t *) palloc(SQUARE_MAX);
 
-    for (int i=0; i<SQUARE_MAX; i++) {
-        if (CHECK_BIT(bboard, i)) {
-            board[i] = GET_PIECE(pieces, k);
+    for (int i=SQUARE_MAX; i>0; i--) {
+        if (CHECK_BIT(b->board, i-1)) {
+            board[SQUARE_MAX-i] = GET_PIECE(b->pieces, k);
             k++;
         } else {
-            board[i] = NO_CPIECE;
+            board[SQUARE_MAX-i] = NO_CPIECE;
         }
-        if (k> PIECES_MAX)
+        if (k > PIECES_MAX)
             CH_ERROR("_bitboard_to_board: internal error: too many pieces :%i", k);
     }
     return board;
@@ -321,25 +324,51 @@ bitboard_t _board_to_bitboard(pieces_t * pieces, const board_t * board)
 * 		debug
 ********************************************************/
 /*{{{*/
-#ifdef EXTRA_DEBUG
-static void debug_bitboard(bitboard_t a) {
 
-    char            *str = (char *) palloc(SQUARE_MAX+1);
-    int             cnt=SQUARE_MAX-1;
-    uint64           b = a;
+void debug_bitboard(const bitboard_t b)
+{
+    char            str[100];
+    int             j = 0;
 
-    str += (SQUARE_MAX - 1);
-	while (cnt >=0) {
-          str[cnt] = (b & 1) + '0';
-          b >>= 1;
-	     cnt--;
-	}
-	str[SQUARE_MAX] = '\0';
-	CH_DEBUG5("bitboard: %ld: |%s|", a, str);
+    for (int i=0; i<SQUARE_MAX; i++) {
+        if (i && !(i%8)) {
+            str[j++] = '\0';
+            CH_NOTICE("bboard: %s", str);
+            j = 0;
+        }
+        if (CHECK_BIT(b, SQUARE_MAX-i-1))
+            str[j++] = 'x';
+        else
+            str[j++] = '.';
+    }
+    str[j++] = '\0';
+    CH_NOTICE("bboard: %s", str);
 }
 
+void debug_board(const board_t * b)
+{
 
-static void debug_bits(uint64 a, unsigned char bits) {
+    char            str[100];
+    int             j = 0;
+
+    for (int i=0; i<SQUARE_MAX; i++) {
+        if (i && !(i%8)) {
+            CH_NOTICE("board:  %s", str);
+            j = 0;
+        }
+        if (b[i] == NO_CPIECE)
+            str[j++] = '.';
+        else
+            str[j++] = _cpiece_char(b[i]);
+    }
+    str[j++] = '\0';
+    CH_NOTICE("board:  %s", str);
+}
+
+#ifdef EXTRA_DEBUG
+
+
+void debug_bits(uint64 a, unsigned char bits) {
 
     char            *str = (char *) palloc(bits+1);
     int             cnt=bits-1;
@@ -358,50 +387,5 @@ static void debug_bits(uint64 a, unsigned char bits) {
  
 #endif
 
-/*
-static ArrayType * make_array( char *typname, size_t size, Datum * data)
-{
-	ArrayType	*result;
-	Oid			element_type = TypenameGetTypid(typname);
-	if (!OidIsValid(element_type))
-		elog(ERROR, "could not find '%s' type.", typname);
-
-	int16		typlen;
-	bool		typbyval;
-	char		typalign;
-
-	get_typlenbyvalalign(element_type, &typlen, &typbyval, &typalign);
-
-	result = construct_array(data, size, element_type, typlen, typbyval, typalign);
-	if (!result)
-		elog(ERROR, "constructing array failed");
-	return result;
-}
-
-*/
-
-/*
-#define PG_RETURN_ENUM(typname, label) return enumLabelToOid(typname, label)
-static Oid enumLabelToOid(const char *typname, const char *label)
-{
-Oid enumtypoid;
-HeapTuple tup;
-Oid ret;
-
-enumtypoid = TypenameGetTypid(typname);
-Assert(OidIsValid(enumtypoid));
-
-tup = SearchSysCache2(ENUMTYPOIDNAME,
-ObjectIdGetDatum(enumtypoid),
-CStringGetDatum(label));
-Assert(HeapTupleIsValid(tup));
-
-ret = HeapTupleGetOid(tup);
-
-ReleaseSysCache(tup);
-
-return ret;
-}
-*/
 /*}}}*/
 

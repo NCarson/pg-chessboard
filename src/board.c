@@ -179,22 +179,27 @@ static uint16 *_board_pieces(const Board * b)/*{{{*/
 {
 
     uint16 				*result = (uint16 *)palloc(b->pcount * sizeof(uint16));
-	unsigned char		k=0;
-    board_t             board[SQUARE_MAX];
+	unsigned char		k=0, p;
+    board_t             *board = _bitboard_to_board(b);
+    uint16              j;
 
-    _bitboard_to_board(board, b->board, b->pieces);
+    memset(result, 0, b->pcount * sizeof(uint16));
 
+    //debug_bitboard(b->board);
+    //debug_board(board);
     if (b->pcount <=0)
         CH_ERROR("board has no pieces");
 
     for (int i=0; i<SQUARE_MAX; i++) {
         if (board[i] != NO_CPIECE) {
-            //CH_NOTICE("i:%i s:%i p:%c", i, FROM_BB_IDX(i), _cpiece_char(board[i]));
-            SET_PS(result[k], board[i], FROM_BB_IDX(i));
-            k++;
+            p = board[i];
+            SET_PS(j, p, FROM_BB_IDX(i));
+            result[k] = j;
             if (k > b->pcount) CH_ERROR("_board_pieces: internal error: too many pieces");
+            k++;
         }
     }
+    pfree(board);
     return result;
 }/*}}}*/
 
@@ -463,10 +468,8 @@ remove_pieces(PG_FUNCTION_ARGS)
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
     Board           *result;
     bool            *pfilter = (bool *) PG_GETARG_POINTER(1);
-    board_t *       board = palloc(SQUARE_MAX);
+    board_t         *board = _bitboard_to_board(b);
     unsigned char   wp, bp, n=0;
-
-    _bitboard_to_board(board, b->board, b->pieces);
 
     for (int i=PAWN; i<PIECE_MAX; i++) {
         if (pfilter[i-1]) {

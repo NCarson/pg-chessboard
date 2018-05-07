@@ -39,3 +39,49 @@
 		p = (char *) att_align(p, typalign);
     }
 */
+
+/*
+static ArrayType * make_array( char *typname, size_t size, Datum * data)
+{
+	ArrayType	*result;
+	Oid			element_type = TypenameGetTypid(typname);
+	if (!OidIsValid(element_type))
+		elog(ERROR, "could not find '%s' type.", typname);
+
+	int16		typlen;
+	bool		typbyval;
+	char		typalign;
+
+	get_typlenbyvalalign(element_type, &typlen, &typbyval, &typalign);
+
+	result = construct_array(data, size, element_type, typlen, typbyval, typalign);
+	if (!result)
+		elog(ERROR, "constructing array failed");
+	return result;
+}
+
+*/
+
+/*
+#define PG_RETURN_ENUM(typname, label) return enumLabelToOid(typname, label)
+static Oid enumLabelToOid(const char *typname, const char *label)
+{
+Oid enumtypoid;
+HeapTuple tup;
+Oid ret;
+
+enumtypoid = TypenameGetTypid(typname);
+Assert(OidIsValid(enumtypoid));
+
+tup = SearchSysCache2(ENUMTYPOIDNAME,
+ObjectIdGetDatum(enumtypoid),
+CStringGetDatum(label));
+Assert(HeapTupleIsValid(tup));
+
+ret = HeapTupleGetOid(tup);
+
+ReleaseSysCache(tup);
+
+return ret;
+}
+*/

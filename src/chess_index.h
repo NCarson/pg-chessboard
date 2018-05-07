@@ -57,6 +57,7 @@
 #define GET_PS_PIECE(i16) (((i16) & 0xff00)>>8)
 #define GET_PS_SQUARE(i16) ((i16) & 0x00ff)
 
+//XXX CHECK_BIT should start at SQUARE_MAX and decrement to be meaningful TO_SQUARE_IDX & TO_BB_IDX
 #define CHECK_BIT(board, k) ((1ull << (k)) & board)
 #define GET_PIECE(pieces, k) ((k)%2 ? pieces[(k)/2] & 0x0f : (pieces[(k)/2] & 0xf0) >> 4)
 #define SET_PIECE(pieces, k, v) (pieces[(k)/2] = (k)%2 ? ( (pieces[(k)/2] & 0xF0) | ((v) & 0xF)) : ((pieces[(k)/2] & 0x0F) | ((v) & 0xF) << 4))
@@ -123,10 +124,12 @@ cpiece_t        _cpiece_in(char c);
 piece_t         _piece_type(const cpiece_t p);
 piece_t         _piece_in(char c);
 
-board_t *       _bitboard_to_board(board_t * board, const uint64 bboard, const pieces_t * pieces);
+board_t *       _bitboard_to_board(const Board *);
 bitboard_t      _board_to_bitboard(pieces_t * pieces, const board_t * board);
 Board *         _init_board(Board * b, int psize);
 void            _board_footer_in(Board * b, const char * str);
+void            debug_bitboard(const bitboard_t a);
+void            debug_board(const board_t * b);
 
 #endif
 
