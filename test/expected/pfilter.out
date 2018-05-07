@@ -1,0 +1,119 @@
+select 'K'::pfilter;
+ pfilter 
+---------
+ K
+(1 row)
+
+select 'KQ'::pfilter;
+ pfilter 
+---------
+ QK
+(1 row)
+
+select 'KQR'::pfilter;
+ pfilter 
+---------
+ RQK
+(1 row)
+
+select 'KQRB'::pfilter;
+ pfilter 
+---------
+ BRQK
+(1 row)
+
+select 'KQRB'::pfilter;
+ pfilter 
+---------
+ BRQK
+(1 row)
+
+select 'KQRBN'::pfilter;
+ pfilter 
+---------
+ NBRQK
+(1 row)
+
+select 'KQRBNP'::pfilter;
+ pfilter 
+---------
+ PNBRQK
+(1 row)
+
+select 'k'::pfilter;
+ pfilter 
+---------
+ K
+(1 row)
+
+select 'kq'::pfilter;
+ pfilter 
+---------
+ QK
+(1 row)
+
+select 'kqr'::pfilter;
+ pfilter 
+---------
+ RQK
+(1 row)
+
+select 'kqrb'::pfilter;
+ pfilter 
+---------
+ BRQK
+(1 row)
+
+select 'kqrb'::pfilter;
+ pfilter 
+---------
+ BRQK
+(1 row)
+
+select 'kqrbn'::pfilter;
+ pfilter 
+---------
+ NBRQK
+(1 row)
+
+select 'kqrbnp'::pfilter;
+ pfilter 
+---------
+ PNBRQK
+(1 row)
+
+select 'Q'::pfilter;
+ pfilter 
+---------
+ Q
+(1 row)
+
+select 'R'::pfilter;
+ pfilter 
+---------
+ R
+(1 row)
+
+select 'N'::pfilter;
+ pfilter 
+---------
+ N
+(1 row)
+
+select 'B'::pfilter;
+ pfilter 
+---------
+ B
+(1 row)
+
+select 'P'::pfilter;
+ pfilter 
+---------
+ P
+(1 row)
+
+--pops
+select '.'::pfilter;
+ERROR:  invalid input syntax for piece: "."
+LINE 1: select '.'::pfilter;
+               ^

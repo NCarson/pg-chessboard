@@ -364,6 +364,23 @@ FUNCTION        1       hash_square(cpiece);
 
 /*}}}*/
 /****************************************************************************
+-- pfilter
+****************************************************************************/
+/*{{{*/
+CREATE FUNCTION pfilter_in(cstring)
+RETURNS pfilter AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pfilter_out(pfilter)
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE pfilter(
+     INPUT          = pfilter_in
+    ,OUTPUT         = pfilter_out
+    ,INTERNALLENGTH = 6
+    ,ALIGNMENT      = char
+    ,STORAGE        = PLAIN
+);/*}}}*/
+/****************************************************************************
 -- piecesquare
 ****************************************************************************/
 /*{{{*/
@@ -653,7 +670,6 @@ AS '$libdir/chess_index'
 LANGUAGE C IMMUTABLE STRICT;
 CREATE CAST (diagonal AS int4) WITH FUNCTION char_to_int(diagonal);
 /*}}}*/
-
 /****************************************************************************
 -- sql functions
  ****************************************************************************/

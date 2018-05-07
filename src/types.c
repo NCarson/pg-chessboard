@@ -83,9 +83,8 @@ PG_FUNCTION_INFO_V1(adiagonal_in);
 PG_FUNCTION_INFO_V1(adiagonal_out);
 PG_FUNCTION_INFO_V1(square_to_adiagonal);
 
-/*}}}*/
-// types
-/*{{{*/
+PG_FUNCTION_INFO_V1(pfilter_in);
+PG_FUNCTION_INFO_V1(pfilter_out);
 
 /*}}}*/
 
@@ -700,6 +699,54 @@ piecesquares_to_board(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(board);
 }
 /*}}}*/
+/********************************************************
+ * 		pfilter
+ ********************************************************/
+Datum/*{{{*/
+pfilter_in(PG_FUNCTION_ARGS)
+{
+	char 		    	*str = PG_GETARG_CSTRING(0);
+    bool                *result = palloc(PIECE_MAX-1); // empty pieces not allowed
+    size_t              n = strlen(str);
+    char                p;
+    bool                found;
+
+    memset(result, 0, PIECE_MAX-1);
+	
+	if (n < 1 || n > 6)
+		BAD_TYPE_IN("pquery", str);
+
+    for (int j=0; j<strlen(str); j++) {
+        found = false;
+        for (int i=PAWN; i<PIECE_MAX; i++) {
+            p = _piece_in(str[j]);
+
+            if (p == i) {
+                result[i-1] = true;
+                found = true;
+                break;
+            }
+        }
+        if (!found) BAD_TYPE_IN("pquery", str);
+    }
+
+	PG_RETURN_POINTER(result);
+}
+
+Datum
+pfilter_out(PG_FUNCTION_ARGS)
+{
+	bool            *pfilter = PG_GETARG_POINTER(0);
+	char			*result = (char *) palloc(PIECE_MAX);
+    int             j=0;
+
+    for (int i=PAWN; i<PIECE_MAX; i++) {
+        if (pfilter[i-1]) result[j++] = _piece_char(i);
+    }
+    result[j]= '\0';
+
+	PG_RETURN_CSTRING(result);
+}/*}}}*/
 
 
 /* +------+------+------+------+------+------+------+------+

@@ -7,7 +7,7 @@ OBJS         = src/chess_index.o src/board.o src/types.o
 EXTENSION 	= chess_index
 REGRESS_OPTS  = --inputdir=test         \
                 --load-extension=chess_index
-REGRESS       = setup square board board_func piecesquare
+REGRESS       = setup square board board_func piecesquare pfilter
 
 DATA 		 = sql/chess_index--0.0.1.sql
 #DATA        = $(filter-out $(wildcard sql/*--*.sql),$(wildcard sql/*.sql))

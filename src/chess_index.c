@@ -166,10 +166,9 @@ cpiece_t _cpiece_in(char c)
     return result;
 }
 
-/*
 piece_t    _piece_in(char c)
 {
-    piece_type          result;
+    piece_t             result;
     char                piece[] = ".";
 
     switch(c) {
@@ -187,12 +186,11 @@ piece_t    _piece_in(char c)
         case 'k': result=KING; break;
 		default:
             piece[0] = c;
-			BAD_TYPE_IN("cpiece", piece);
+			BAD_TYPE_IN("piece", piece);
 			break;
     }
     return result;
 }
-*/
 
 char _piece_char(const piece_t p) 
 {
@@ -214,7 +212,7 @@ char _piece_char(const piece_t p)
 /********************************************************
 * 		board
 ********************************************************/
-
+/*{{{*/
 void _board_footer_in(Board * b, const char * str)
 {
     char        c, p=0, enpassant=-1;
@@ -256,7 +254,7 @@ void _board_footer_in(Board * b, const char * str)
     }
     b->enpassant = enpassant;
 }
-board_t *_bitboard_to_board(board_t * board, const uint64 bboard, const pieces_t * pieces)/*{{{*/
+board_t *_bitboard_to_board(board_t * board, const uint64 bboard, const pieces_t * pieces)
 {
 	unsigned char		k=0;
 
