@@ -180,17 +180,17 @@ static uint16 *_board_pieces(const Board * b)/*{{{*/
 
     uint16 				*result = (uint16 *)palloc(b->pcount * sizeof(uint16));
 	unsigned char		k=0;
-    cpiece_t            subject;
+    board_t             board[SQUARE_MAX];
+
+    _bitboard_to_board(board, b->board, b->pieces);
 
     if (b->pcount <=0)
         CH_ERROR("board has no pieces");
 
     for (int i=0; i<SQUARE_MAX; i++) {
-        //CH_NOTICE("i:%i", i);
-        if (CHECK_BIT(b->board, i)) {
-            subject = GET_PIECE(b->pieces, k);
-            //CH_NOTICE("k:%i, bb idx:%i, i:%i", k, FROM_BB_IDX(i), i);
-            SET_PS(result[k], subject, FROM_BB_IDX(i));
+        if (board[i] != NO_CPIECE) {
+            //CH_NOTICE("i:%i s:%i p:%c", i, FROM_BB_IDX(i), _cpiece_char(board[i]));
+            SET_PS(result[k], board[i], FROM_BB_IDX(i));
             k++;
             if (k > b->pcount) CH_ERROR("_board_pieces: internal error: too many pieces");
         }

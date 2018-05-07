@@ -716,4 +716,12 @@ CREATE OR REPLACE FUNCTION invert(board)
 RETURNS text AS $$
     select translate($1::text, 'KQRBNPkqrbnpwb', 'kqrbnpKQRBNPbw')
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION piece_string(board)
+RETURNS text AS $$
+    select string_agg(t, ' ')
+    from  (
+        select  unnest(p)::text as t from (select pieces p from pieces($1)) as t
+    ) tt
+$$ LANGUAGE SQL IMMUTABLE STRICT;
 /*}}}*/
