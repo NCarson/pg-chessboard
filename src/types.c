@@ -633,33 +633,33 @@ static Board *_piecesquares_to_board(const char *footer, const Datum * input, co
     cpiece_t            p;
     char                s;
     Board               *b; 
-    board_t             cboard[SQUARE_MAX];
+    int                 k=0;
+
+    INIT_BOARD(b, size);
+    b->pcount = size;
+    _board_footer_in(b, footer);
 
     if (size < 1)
         CH_ERROR("_piecesquares_to_board: internal error:pieces less than 1 :%i", size);
     if (size > PIECES_MAX)
         CH_ERROR("_piecesquares_to_board: internal error: too many pieces :%i", size);
 
-    for (int i=0; i<SQUARE_MAX; i++)
-        cboard[i] = NO_CPIECE;
-
 	for (int i = 0; i < size; i++) {
 		if (valsNullFlags[i]) {
-		  CH_ERROR("null values not allowed in array");
+            continue;
 		} 
         ps = DatumGetInt16(input[i]);
         s = GET_PS_SQUARE(ps);
         p = GET_PS_PIECE(ps);
         if (s < 0 || s >= SQUARE_MAX) CH_ERROR("_piecesquares_to_board: internal error: invalid square: %i", s);
         if (p < 0 || p >= CPIECE_MAX) CH_ERROR("_piecesquares_to_board: internal error: invalid piece:%i", p);
-        cboard[TO_BB_IDX(s)] = p;
-        //CH_NOTICE("s:%i p:%i bb:%i", s, p, TO_BB_IDX(s));
+        SET_BIT64(b->board, TO_SQUARE_IDX(s));
+        SET_PIECE(b->pieces, k, p);
+        k++;
     }
-
-    INIT_BOARD(b, size);
-    b->board = _board_to_bitboard(b->pieces, cboard);
-    b->pcount = size;
-    _board_footer_in(b, footer);
+    if (k != size)
+        CH_ERROR("_piecesquares_to_board: internal error: size:%d != pcount:%d", size, b->pcount);
+    //debug_bitboard(b->board);
     return b;
 }
 

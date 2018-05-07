@@ -460,6 +460,11 @@ CREATE CAST (board as piecesquare[]) WITH FUNCTION pieces;
 CREATE FUNCTION piecesquares_to_board(piecesquare[], text)
 RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
+CREATE FUNCTION piecesquares_to_board(piecesquare[])
+RETURNS board AS $$ 
+    select piecesquares_to_board($1, 'w - -'::text)
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
 CREATE FUNCTION remove_pieces(board, pfilter)
 RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 

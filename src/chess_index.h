@@ -64,7 +64,7 @@
 
 #define TO_SQUARE_IDX(i)  (((i)/8)*8 + (8 - (i)%8) - 1) //from a fen string
 #define FROM_BB_IDX(i) ( 63 - ((i)/8)*8 - (7 - (i)%8))  // from bb to square idx
-#define TO_BB_IDX(i) (56 - (i/8)*8 + (i%8))             // from square idx to bb idx
+//define TO_BB_IDX(i) (56 - (i/8)*8 + (i%8))             // from square idx to bb idx
 
 #define PIECE_SIZE(k) ((k)/2 + ((k)%2))
 #define BOARD_SIZE(k) (PIECE_SIZE(k) + sizeof(Board))
