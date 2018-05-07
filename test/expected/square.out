@@ -1,0 +1,42 @@
+create extension chess_index;
+ERROR:  extension "chess_index" already exists
+\set ON_ERROR_STOP off
+\o /dev/null
+\echo 'fail'
+fail
+select 'a0'::square;
+ERROR:  invalid input syntax for square: "a0"
+LINE 1: select 'a0'::square;
+               ^
+select 'a9'::square;
+ERROR:  invalid input syntax for square: "a9"
+LINE 1: select 'a9'::square;
+               ^
+select 'A8'::square;
+ERROR:  invalid input syntax for square: "A8"
+LINE 1: select 'A8'::square;
+               ^
+select 'i1'::square;
+ERROR:  invalid input syntax for square: "i1"
+LINE 1: select 'i1'::square;
+               ^
+\set ON_ERROR_STOP on
+\echo 'false'
+false
+select expected_or_fail_bool('a1'::square = 'b1'::square,  false);
+select expected_or_fail_bool('a2'::square < 'b1'::square,  false);
+select expected_or_fail_bool('b1'::square <= 'a1'::square, false);
+select expected_or_fail_bool('a1'::square > 'b2'::square,  false);
+select expected_or_fail_bool('a1'::square >= 'b2'::square, false);
+\echo 'succeed'
+succeed
+select expected_or_fail_bool('a1'::square =  'a1'::square, true);
+select expected_or_fail_bool('a2'::square >  'b1'::square, true);
+select expected_or_fail_bool('a1'::square >= 'a1'::square, true);
+select expected_or_fail_bool('a2'::square >= 'b1'::square, true);
+select expected_or_fail_bool('a1'::square <  'a2'::square, true);
+select expected_or_fail_bool('a1'::square <= 'a1'::square, true);
+select expected_or_fail_bool('a1'::square <= 'a2'::square, true);
+\echo 'norows'
+norows
+select expected_or_fail_int((select count(a)  from (select a, a = a::square::int as t from generate_series(0, 63) as a) as tt where t=false)::int, 0);

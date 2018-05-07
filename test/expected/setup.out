@@ -1,0 +1,25 @@
+\set ON_ERROR_STOP on
+CREATE OR REPLACE FUNCTION expected_or_fail_bool(val bool, expected bool)
+RETURNS void AS
+$body$
+BEGIN
+    IF val != expected THEN
+        RAISE EXCEPTION 'val:% does not equal expecteed %', val, expected;
+    END IF;
+END;
+$body$
+LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION expected_or_fail_int(val int, expected int)
+RETURNS void AS
+$body$
+BEGIN
+    IF val != expected THEN
+        RAISE EXCEPTION 'val:% does not equal expecteed %', val, expected;
+    END IF;
+END;
+$body$
+LANGUAGE plpgsql;
+CREATE TABLE position(
+     fen            board           not null
+);
+\copy position from stdin

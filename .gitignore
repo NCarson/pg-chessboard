@@ -1,0 +1,10 @@
+results/*
+src/*.o
+data/*.pgn
+data/*.bz2
+*.so
+*.swp
+*.log
+
+regression.out
+regression.diffs

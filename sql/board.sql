@@ -1,0 +1,2 @@
+
+select fen from position;

@@ -1,0 +1,4 @@
+
+comment = 'data types for indexing chess positions'
+default_version = '0.0.1'
+relocatable = true
