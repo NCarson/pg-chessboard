@@ -117,6 +117,35 @@ piece_t _piece_type(const cpiece_t p)
     return result;
 }
 
+cpiece_t _cpiece_type(const piece_t p, bool iswhite) 
+{
+    piece_t          result;
+
+    if (iswhite) {
+        switch (p) {
+            case PAWN:    result=WHITE_PAWN; break;
+            case KNIGHT:  result=WHITE_KNIGHT; break;
+            case BISHOP:  result=WHITE_BISHOP; break;
+            case ROOK:    result=WHITE_ROOK; break;
+            case QUEEN:   result=WHITE_QUEEN; break;
+            case KING:    result=WHITE_KING; break;
+            default:
+                CH_ERROR("bad piece_t: %i", p); break;
+        }
+    } else {
+        switch (p) {
+            case PAWN:    result=BLACK_PAWN; break;
+            case KNIGHT:  result=BLACK_KNIGHT; break;
+            case BISHOP:  result=BLACK_BISHOP; break;
+            case ROOK:    result=BLACK_ROOK; break;
+            case QUEEN:   result=BLACK_QUEEN; break;
+            case KING:    result=BLACK_KING; break;
+            default:
+                CH_ERROR("bad piece_t: %i", p); break;
+        }
+    }
+    return result;
+}
 
 char _cpiece_char(const cpiece_t p) 
 {

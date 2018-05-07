@@ -118,6 +118,7 @@ uint16          _pindex_in(char * str);
 char            _square_in(char file, char rank);
 char            _piece_char(const piece_t p);
 char            _cpiece_char(const cpiece_t p);
+cpiece_t        _cpiece_type(const piece_t p, bool iswhite);
 cpiece_t        _cpiece_in(char c);
 piece_t         _piece_type(const cpiece_t p);
 piece_t         _piece_in(char c);

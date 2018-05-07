@@ -33,6 +33,7 @@ PG_FUNCTION_INFO_V1(side);
 PG_FUNCTION_INFO_V1(pieceindex);
 PG_FUNCTION_INFO_V1(_pieces);
 PG_FUNCTION_INFO_V1(board_to_fen);
+PG_FUNCTION_INFO_V1(remove_pieces);
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
 #define SIZEOF_BOARD(k) (sizeof(Board) + SIZEOF_PIECES(k))
@@ -453,7 +454,50 @@ footer(PG_FUNCTION_ARGS)
             break;
 
     PG_RETURN_CSTRING(&str[i+1]);
-}/*}}}*/
+}
+
+Datum
+remove_pieces(PG_FUNCTION_ARGS)
+{
+
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    Board           *result;
+    bool            *pfilter = (bool *) PG_GETARG_POINTER(1);
+    board_t *       board = palloc(SQUARE_MAX);
+    unsigned char   wp, bp, n=0;
+
+    _bitboard_to_board(board, b->board, b->pieces);
+
+    for (int i=PAWN; i<PIECE_MAX; i++) {
+        if (pfilter[i-1]) {
+            wp = _cpiece_type(i, true);
+            bp = _cpiece_type(i, false);
+
+            for (int j=0; j<SQUARE_MAX; j++) {
+                if (board[j] == wp || board[j] == bp) {
+                    board[j] = NO_CPIECE;
+                    n++;
+                }
+            }
+        }
+    }
+
+    if (b->pcount - n <= 0)
+        PG_RETURN_NULL();
+
+    INIT_BOARD(result, b->pcount - n);
+    result->board = _board_to_bitboard(result->pieces, board);
+    result->whitesgo = b->whitesgo;
+    result->pcount = b->pcount - n;
+    result->enpassant = b->enpassant;
+    result->wk = b->wk;
+    result->wq = b->wq;
+    result->bk = b->bk;
+    result->bq = b->bq;
+    PG_RETURN_POINTER(result);
+}
+
+/*}}}*/
 
 
 
