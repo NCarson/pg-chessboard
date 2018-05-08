@@ -11,6 +11,7 @@ const cpiece_t          BLACK_PIECES[] = {BLACK_QUEEN, BLACK_ROOK, BLACK_BISHOP,
 const piece_t           PIECE_INDEX_PIECES[] = {QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
 const int               PIECE_INDEX_COUNTS[] = {1, 2, 2, 2, 8};
 
+/*
 // file a - h
 const int64 File_Mask = {
        -9187201950435737472,
@@ -73,6 +74,7 @@ const int64 ADiagonal_Mask = {
                           258,
                             1,
 }
+*/
 
 
 
