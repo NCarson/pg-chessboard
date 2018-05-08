@@ -15,8 +15,8 @@
 #include "utils/array.h" 		//PG_RETURN_ARRAYTYPE_P(x)
 #include "utils/lsyscache.h"
 
-
-//#define EXTRA_DEBUG 1
+// defines
+//#define EXTRA_DEBUG 1/*{{{*/
 
 #define CH_NOTICE(...) ereport(NOTICE, (errcode(ERRCODE_INTERNAL_ERROR), errmsg(__VA_ARGS__)))
 #define CH_ERROR(...) ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg(__VA_ARGS__)))
@@ -26,13 +26,15 @@
 #define CH_DEBUG2(...) ereport(DEBUG2, (errcode(ERRCODE_INTERNAL_ERROR), errmsg(__VA_ARGS__)))
 #define CH_DEBUG1(...) ereport(DEBUG1, (errcode(ERRCODE_INTERNAL_ERROR), errmsg(__VA_ARGS__))) // least detail
 
+#define CH_DEBUG_SQUARE(s)  CH_NOTICE("square:%c%c", CHAR_CFILE(s), CHAR_RANK(s));
+
 #define BAD_TYPE_IN(type, input) ereport( \
         ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION), \
             errmsg("invalid input syntax for %s: \"%s\"", type, input)))
 
 #define BAD_TYPE_OUT(type, input) ereport( \
         ERROR, (errcode(ERRCODE_DATA_CORRUPTED), \
-            errmsg("corrupt internal data for %s: \"%d\"", type, input)))/*}}}*/
+            errmsg("corrupt internal data for %s: \"%d\"", type, input)))
 
 #define FEN_MAX 100
 #define PIECES_MAX 32
@@ -64,13 +66,34 @@
 
 #define TO_SQUARE_IDX(i)  (((i)/8)*8 + (8 - (i)%8) - 1) //from a fen string
 #define FROM_BB_IDX(i) ( 63 - ((i)/8)*8 - (7 - (i)%8))  // from bb to square idx
-//define TO_BB_IDX(i) (56 - (i/8)*8 + (i%8))             // from square idx to bb idx
+#define TO_BB_IDX(i) (56 - (i/8)*8 + (i%8))             // from square idx to bb idx
 
 #define PIECE_SIZE(k) ((k)/2 + ((k)%2))
 #define BOARD_SIZE(k) (PIECE_SIZE(k) + sizeof(Board))
 #define INIT_BOARD(b, k) do { \
         b = (Board*)palloc(BOARD_SIZE(k)); memset(b, 0, BOARD_SIZE(k)); memset(b->pieces,0,PIECE_SIZE(k)); SET_VARSIZE(b, BOARD_SIZE(k)); \
     } while(0)
+
+#define DIR_N   8
+#define DIR_S  -8
+#define DIR_W  -1
+#define DIR_E   1
+#define DIR_NW  7
+#define DIR_SE -7
+#define DIR_NE  9
+#define DIR_SW -9
+
+/*}}}*/
+
+/********************************************************
+* 		types
+********************************************************/
+
+/*{{{*/
+
+typedef                 uint64          bitboard_t; // for Board type storage
+typedef                 unsigned char   pieces_t;   // nibbles of bytes for piece storage board
+typedef                 unsigned char   board_t;    // for use with cpiece
 
 typedef enum            {BLACK, WHITE} side_t;
 
@@ -83,12 +106,9 @@ typedef enum            {NO_PIECE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, PIEC
 const piece_t           PIECE_INDEX_PIECES[5];
 const int               PIECE_INDEX_COUNTS[5];
 
-typedef                 uint64          bitboard_t; // for Board type storage
-typedef                 unsigned char   pieces_t;   // nibbles of bytes for piece storage board
-typedef                 unsigned char   board_t;    // for use with cpiece
-
 #define PIECE_INDEX_SUM 15
 #define PIECE_INDEX_MAX 5
+
 
 /*
  * base-size -> 14: 8 byte bitboard + 4 byte struct length (required by pg) + 2 for state
@@ -114,6 +134,11 @@ typedef struct {
     pieces_t        pieces[FLEXIBLE_ARRAY_MEMBER];
 } Board;
 
+
+/*}}}*/
+
+// declarations
+  
 uint32          _sdbm_hash(char * str);
 uint16          _pindex_in(char * str);
 char            _square_in(char file, char rank);
@@ -130,6 +155,9 @@ Board *         _init_board(Board * b, int psize);
 void            _board_footer_in(Board * b, const char * str);
 void            debug_bitboard(const bitboard_t a);
 void            debug_board(const board_t * b);
+char            _adiagonal_in(char square);
+char            _diagonal_in(char square);
+side_t          _cpiece_side(const cpiece_t p);
 
 #endif
 

@@ -34,9 +34,17 @@ PG_FUNCTION_INFO_V1(pieceindex);
 PG_FUNCTION_INFO_V1(_pieces);
 PG_FUNCTION_INFO_V1(board_to_fen);
 PG_FUNCTION_INFO_V1(remove_pieces);
+PG_FUNCTION_INFO_V1(heatmap);
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
 #define SIZEOF_BOARD(k) (sizeof(Board) + SIZEOF_PIECES(k))
+#define CHANGED_RANK(s, ss) ((s)/8 != (ss)/8)
+#define CHANGED_FILE(s, ss) ((s)%8 != (ss)%8)
+
+static const int        KNIGHT_DIRS[] = {6, 15, 17, 10, -6, -15, -17, -10};
+static const int        ROOK_DIRS[] =   {DIR_N, DIR_S, DIR_E, DIR_W};
+static const int        BISHOP_DIRS[] = {DIR_NW, DIR_SW, DIR_SE, DIR_NE};
+static const int        QUEEN_DIRS[] =  {DIR_N, DIR_S, DIR_E, DIR_W, DIR_NW, DIR_SW, DIR_SE, DIR_NE};
  
 /*-------------------------------------------------------
  -      static
@@ -202,6 +210,95 @@ static uint16 *_board_pieces(const Board * b)/*{{{*/
     pfree(board);
     return result;
 }/*}}}*/
+
+//TODO en passant
+static int *_board_heatmap(const Board * b, int * heatmap)
+{
+    unsigned char       s, p, k=0, count=0, dcount=0;
+    int                 sign;
+    const int           *dirs=0;
+
+    for (int i=SQUARE_MAX-1; i>=0; i--)
+    {
+                    //CH_NOTICE("s:%c%c %d", CHAR_CFILE(s), CHAR_RANK(s), s);
+        s = TO_SQUARE_IDX(i);
+        if (CHECK_BIT(b->board, i)) {
+            p = _piece_type(GET_PIECE(b->pieces, k));
+            sign = _cpiece_side(GET_PIECE(b->pieces, k))==WHITE ? 1 : -1;
+            switch (p)
+            {
+                case PAWN:
+                    dirs = BISHOP_DIRS;
+                    count = 1;
+                    dcount = 4;
+                    break;
+                case KNIGHT:
+                    dirs = KNIGHT_DIRS;
+                    count = 1;
+                    dcount = 8;
+                    break;
+                case KING:
+                    dirs = QUEEN_DIRS;
+                    count = 1;
+                    dcount = 8;
+                    break;
+
+                //sliders
+                case QUEEN:
+                    dirs = QUEEN_DIRS;
+                    count = 255;
+                    dcount = 8;
+                    break;
+                case ROOK:
+                    dirs = ROOK_DIRS;
+                    count = 255;
+                    dcount = 4;
+                    break;
+                case BISHOP:
+                    dirs = BISHOP_DIRS;
+                    count = 255;
+                    dcount = 4;
+                    break;
+
+                default:
+                    CH_ERROR("internal error: unknown cpiece type %d", p);
+                    break;
+            }
+            k++;
+            for (int i=0, d, ss, cc; i<dcount; i++) {
+                ss = s;
+                cc = count;
+                d = dirs[i];
+                CH_NOTICE("dir:%d", d);
+                while(cc > 0) {
+                    ss += d;
+                    if (ss < 0 || ss >= SQUARE_MAX) // off board
+                        break;
+                    if ((d==DIR_W || d==DIR_E) && CHANGED_RANK(s, ss))
+                        break;
+                    if ((d==DIR_N || d==DIR_S) && CHANGED_FILE(s, ss))
+                        break;
+                    // we could find diagonals with rotated bitboards instead of functions
+                    // https://chessprogramming.wikispaces.com/Flipping%20Mirroring%20and%20Rotating
+                    if ((d==DIR_NE || d==DIR_SW) && _adiagonal_in(s) !=_adiagonal_in(ss))
+                        break;
+                    if ((d==DIR_NW || d==DIR_SE) && _diagonal_in(s) !=_diagonal_in(ss))
+                        break;
+                    if (p==PAWN && sign > 0 && d < 0)
+                        break;
+                    if (p==PAWN && sign < 0 && d > 0)
+                        break;
+
+                    CH_DEBUG_SQUARE(ss);
+                    cc--;
+                    heatmap[ss] += sign;
+                }
+            }
+        }
+    }
+    return heatmap;
+}
+
 
 /*}}}*/
 /*}}}*/
@@ -500,7 +597,31 @@ remove_pieces(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(result);
 }
 
-/*}}}*/
+Datum
+heatmap(PG_FUNCTION_ARGS)
+{
 
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    int32           heatmap[SQUARE_MAX];
+    char            *str = palloc(SQUARE_MAX + 8 + 1);
+    int             j=0;
+
+    memset(heatmap, 0, sizeof(int32) * SQUARE_MAX);
+    
+    _board_heatmap(b, heatmap);
+
+    for (int i=0, v; i<SQUARE_MAX; i++)
+    {
+       if (i && !(i%8))
+           str[j++] = '\n';
+        v = heatmap[TO_BB_IDX(i)];
+        str[j++] = v >= 0 ? (v > 0 ? '+' : '.') : '-';
+    }
+    str[j] = '\0';
+
+    PG_RETURN_CSTRING(str);
+}
+
+/*}}}*/
 
 

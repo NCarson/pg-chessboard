@@ -280,48 +280,8 @@ int_to_square(PG_FUNCTION_ARGS)
 /********************************************************
  * 		diagonal
  ********************************************************/
-/*{{{*
-static char _diagonal_in(char square)
-{
-    char            d;
+/*{{{*/
 
-    switch (square+1) {
-        case 1:
-            d = -7; break;
-        case 9: case 2:
-            d = -6; break;
-        case 17: case 10: case 3:
-            d = -5; break;
-        case 25: case 18: case 11: case 4:
-            d = -4; break;
-        case 33: case 26: case 19: case 12: case 5:
-            d = -3; break;
-        case 41: case 34: case 27: case 20: case 13: case 6:
-            d = -2; break;
-        case 49: case 42: case 35: case 28: case 21: case 14: case 7:
-            d = -1; break;
-        case 57: case 50: case 43: case 36: case 29: case 22: case 15: case 8:
-            d = 0; break;
-        case 58: case 51: case 44: case 37: case 30: case 23: case 16:
-            d = 1; break;
-        case 59: case 52: case 45: case 38: case 31: case 24:
-            d = 2; break;
-        case 60: case 53: case 46: case 39: case 32:
-            d = 3; break;
-        case 61: case 54: case 47: case 40:
-            d = 4; break;
-        case 62: case 55: case 48:
-            d = 5; break;
-        case 63: case 56:
-            d = 6; break;
-        case 64:
-            d = 7; break;
-        default:
-            CH_ERROR("bad square %d for diagonal", square);
-            break;
-    }
-    return d;
-}
 
 Datum
 square_to_diagonal(PG_FUNCTION_ARGS)
@@ -373,47 +333,6 @@ diagonal_out(PG_FUNCTION_ARGS)
  * 		adiagonal
  ********************************************************/
 /*{{{*/
-static char _adiagonal_in(char square)
-{
-    char            d;
-
-    switch (square+1) {
-        case 57:
-            d = -7; break;
-        case 49: case 58:
-            d = -6; break;
-        case 41: case 50: case 59:
-            d = -5; break;
-        case 33: case 42: case 51: case 60:
-            d = -4; break;
-        case 25: case 34: case 43: case 52: case 61:
-            d = -3; break;
-        case 17: case 26: case 35: case 44: case 53: case 62:
-            d = -2; break;
-        case 9: case 18: case 27: case 36: case 45: case 54: case 63:
-            d = -1; break;
-        case 1: case 10: case 19: case 28: case 37: case 46: case 55: case 64:
-            d = 0; break;
-        case 2: case 11: case 20: case 29: case 38: case 47: case 56:
-            d = 1; break;
-        case 3: case 12: case 21: case 30: case 39: case 48:
-            d = 2; break;
-        case 4: case 13: case 22: case 31: case 40:
-            d = 3; break;
-        case 5: case 14: case 23: case 32:
-            d = 4; break;
-        case 6: case 15: case 24:
-            d = 5; break;
-        case 7: case 16:
-            d = 6; break;
-        case 8:
-            d = 7; break;
-        default:
-            CH_ERROR("bad square %d for adiagonal", square);
-            break;
-    }
-    return d;
-}
 
     Datum
 square_to_adiagonal(PG_FUNCTION_ARGS)

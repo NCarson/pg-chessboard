@@ -468,6 +468,9 @@ $$ LANGUAGE SQL IMMUTABLE STRICT;
 CREATE FUNCTION remove_pieces(board, pfilter)
 RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
+CREATE FUNCTION heatmap(board)
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
 /*---------------------------------------/
 /  ops                                   /
 /---------------------------------------*/

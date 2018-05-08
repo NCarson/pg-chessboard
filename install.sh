@@ -33,4 +33,4 @@ fi
 
 psql -c"drop extension if exists chess_index cascade"
 psql -c"create extension chess_index"
-cd ../chess_games && make
+cd ../chess_games && make > /dev/null

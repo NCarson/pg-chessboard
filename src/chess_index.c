@@ -5,11 +5,12 @@
 PG_MODULE_MAGIC;
 #endif
 
+const piece_t           PIECE_INDEX_PIECES[] = {QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
+const int               PIECE_INDEX_COUNTS[] = {1, 2, 2, 2, 8};
+
 const cpiece_t          WHITE_PIECES[] = {WHITE_QUEEN, WHITE_ROOK, WHITE_BISHOP, WHITE_KNIGHT, WHITE_PAWN};
 const cpiece_t          BLACK_PIECES[] = {BLACK_QUEEN, BLACK_ROOK, BLACK_BISHOP, BLACK_KNIGHT, BLACK_PAWN};
 
-const piece_t           PIECE_INDEX_PIECES[] = {QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
-const int               PIECE_INDEX_COUNTS[] = {1, 2, 2, 2, 8};
 
 /*
 // file a - h
@@ -162,6 +163,34 @@ char _square_in(char file, char rank)
 * 		piece
 ********************************************************/
 /*{{{*/
+
+side_t _cpiece_side(const cpiece_t p) 
+{
+    side_t          result;
+
+    switch (p) {
+        case WHITE_PAWN:
+        case WHITE_KNIGHT:
+        case WHITE_BISHOP:
+        case WHITE_ROOK:
+        case WHITE_QUEEN:
+        case WHITE_KING:
+            result=WHITE;
+            break;
+        case BLACK_PAWN:
+        case BLACK_KNIGHT:
+        case BLACK_BISHOP:
+        case BLACK_ROOK:
+        case BLACK_QUEEN:
+        case BLACK_KING:
+            result=BLACK;
+            break;
+        default:
+            CH_ERROR("bad cpiece_t: %i", p); break;
+    }
+    return result;
+}
+
 piece_t _piece_type(const cpiece_t p) 
 {
     piece_t          result;
@@ -455,4 +484,90 @@ void debug_bits(uint64 a, unsigned char bits) {
 #endif
 
 /*}}}*/
+/********************************************************
+* 		diagonals
+********************************************************/
+char _diagonal_in(char square)/*{{{*/
+{
+    char            d;
 
+    switch (square+1) {
+        case 1:
+            d = -7; break;
+        case 9: case 2:
+            d = -6; break;
+        case 17: case 10: case 3:
+            d = -5; break;
+        case 25: case 18: case 11: case 4:
+            d = -4; break;
+        case 33: case 26: case 19: case 12: case 5:
+            d = -3; break;
+        case 41: case 34: case 27: case 20: case 13: case 6:
+            d = -2; break;
+        case 49: case 42: case 35: case 28: case 21: case 14: case 7:
+            d = -1; break;
+        case 57: case 50: case 43: case 36: case 29: case 22: case 15: case 8:
+            d = 0; break;
+        case 58: case 51: case 44: case 37: case 30: case 23: case 16:
+            d = 1; break;
+        case 59: case 52: case 45: case 38: case 31: case 24:
+            d = 2; break;
+        case 60: case 53: case 46: case 39: case 32:
+            d = 3; break;
+        case 61: case 54: case 47: case 40:
+            d = 4; break;
+        case 62: case 55: case 48:
+            d = 5; break;
+        case 63: case 56:
+            d = 6; break;
+        case 64:
+            d = 7; break;
+        default:
+            CH_ERROR("bad square %d for diagonal", square);
+            break;
+    }
+    return d;
+}
+
+char _adiagonal_in(char square)
+{
+    char            d;
+
+    switch (square+1) {
+        case 57:
+            d = -7; break;
+        case 49: case 58:
+            d = -6; break;
+        case 41: case 50: case 59:
+            d = -5; break;
+        case 33: case 42: case 51: case 60:
+            d = -4; break;
+        case 25: case 34: case 43: case 52: case 61:
+            d = -3; break;
+        case 17: case 26: case 35: case 44: case 53: case 62:
+            d = -2; break;
+        case 9: case 18: case 27: case 36: case 45: case 54: case 63:
+            d = -1; break;
+        case 1: case 10: case 19: case 28: case 37: case 46: case 55: case 64:
+            d = 0; break;
+        case 2: case 11: case 20: case 29: case 38: case 47: case 56:
+            d = 1; break;
+        case 3: case 12: case 21: case 30: case 39: case 48:
+            d = 2; break;
+        case 4: case 13: case 22: case 31: case 40:
+            d = 3; break;
+        case 5: case 14: case 23: case 32:
+            d = 4; break;
+        case 6: case 15: case 24:
+            d = 5; break;
+        case 7: case 16:
+            d = 6; break;
+        case 8:
+            d = 7; break;
+        default:
+            CH_ERROR("bad square %d for adiagonal", square);
+            break;
+    }
+    return d;
+}
+/*}}}*/
