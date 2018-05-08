@@ -694,14 +694,15 @@ RETURNS text AS $$
                     else E'\n'  
                   end
             )
-            , '8', case when not $2 then '        ' else U&'\3000\3000\3000\3000\3000\3000\3000\3000' end) 
-            , '7', case when not $2 then '       ' else U&'\3000\3000\3000\3000\3000\3000\3000' end) 
-            , '6', case when not $2 then '      ' else U&'\3000\3000\3000\3000\3000\3000' end) 
-            , '5', case when not $2 then '     ' else U&'\3000\3000\3000\3000\3000' end) 
-            , '4', case when not $2 then '    ' else U&'\3000\3000\3000\3000' end) 
-            , '3', case when not $2 then '   ' else U&'\3000\3000\3000' end) 
-            , '2', case when not $2 then '  ' else U&'\3000\3000' end) 
-            , '1', case when not $2 then ' ' else U&'\3000' end) 
+            , '8', case when not $2 then '........' else U&'.\200A.\200A.\200A.\200A.\200A.\200A.\200A.\200A' end) 
+            , '7', case when not $2 then '.......' else U&'.\200A.\200A.\200A.\200A.\200A.\200A.\200A' end) 
+            , '6', case when not $2 then '......' else U&'.\200A.\200A.\200A.\200A.\200A.\200A' end) 
+            , '5', case when not $2 then '.....' else U&'.\200A.\200A.\200A.\200A.\200A' end) 
+            , '4', case when not $2 then '....' else U&'.\200A.\200A.\200A.\200A' end) 
+            , '3', case when not $2 then '...' else U&'.\200A.\200A.\200A' end) 
+            , '2', case when not $2 then '..' else U&'.\200A.\200A' end) 
+            , '1', case when not $2 then '.' else U&'.\200A' end) 
+
         || E'\n' || split_part($1, ' ', 2)
         || '  '  || split_part($1, ' ', 3)
         || '  '  || split_part($1, ' ', 4)
