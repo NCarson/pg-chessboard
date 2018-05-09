@@ -84,14 +84,14 @@
 #define PS_TARGET_MASK  3840
 #define PS_SUBJECT_MASK 61440
 
-#define GET_PS_SQUARE(i16) ((i16) & PS_SQUARE_MASK)
-#define GET_PS_KIND(i16) (((i16) & PS_KIND_MASK)>>6 )
-#define GET_PS_PIECE(i16) (((i16) & PS_TARGET_MASK)>>8 )
-#define GET_PS_SUBJECT(i16) (((i16) & PS_SUBJECT_MASK)>>12 )
+#define GET_PS_SQUARE(i16)      ((i16) & PS_SQUARE_MASK)
+#define GET_PS_KIND(i16)        (((i16) & PS_KIND_MASK)>>6 )
+#define GET_PS_PIECE(i16)       (((i16) & PS_TARGET_MASK)>>8 )
+#define GET_PS_SUBJECT(i16)     (((i16) & PS_SUBJECT_MASK)>>12 )
 
-#define INIT_PS(i16, p, s) ((i16) =  ((p)<<8) | (s))
-#define SET_PS_KIND(i16, k) ((i16) = (i16) | ((k)<<6))
-#define SET_PS_SUBJECT(i16, p) ((i16) = (i16) | ((p)<<8))
+#define INIT_PS(i16, p, s)      ((i16) = ((p)<<8) | (s))
+#define SET_PS_KIND(i16, k)     ((i16) = ((k)<<6) | (i16))
+#define SET_PS_SUBJECT(i16, p)  ((i16) = ((p)<<12) | (i16) )
 
 
 // board type

@@ -499,13 +499,26 @@ piecesquare_in(PG_FUNCTION_ARGS)
 {
 	char 		    	*str = PG_GETARG_CSTRING(0);
     uint16              result=0;
+    int                 kind;
 	
-	if (strlen(str) != 3)
+	if (strlen(str) == 3)
+        INIT_PS(result, _cpiece_in(str[0]), _square_in(str[1], str[2]));
+    else if (strlen(str) == 5) {
+        INIT_PS(result, _cpiece_in(str[2]), _square_in(str[3], str[4]));
+        SET_PS_SUBJECT(result, _cpiece_in(str[0]));
+        switch (str[1]) {
+            case '>': kind=PS_ATTACKS; break;
+            case '<': kind=PS_DEFENDS; break;
+            case '}': kind=PS_XRAY; break;
+            default: 
+                BAD_TYPE_IN("piecesquare", str); 
+                break;
+        }
+        SET_PS_KIND(result, kind);
+    } else
 		BAD_TYPE_IN("piecesquare", str);
-	
-	INIT_PS(result, _cpiece_in(str[0]), _square_in(str[1], str[2]));
-    //debug_bits(result, 16);
 
+    //debug_bits(result, 16);
 	PG_RETURN_INT16(result);
 }
 
@@ -513,8 +526,9 @@ Datum
 piecesquare_out(PG_FUNCTION_ARGS)
 {
 	uint16          ps = PG_GETARG_UINT16(0);
-	char			*result = (char *) palloc(4);
+	char			*result = (char *) palloc(6);
     char            square, piece;
+    int             j=0;
 
     //debug_bits(ps, 16);
 
@@ -528,10 +542,22 @@ piecesquare_out(PG_FUNCTION_ARGS)
     if (piece < 0 || piece >= CPIECE_MAX)
         BAD_TYPE_OUT("piecesquare", ps);
 
-	result[0] = _cpiece_char(piece);
-	result[1] = CHAR_CFILE(square);
-	result[2] = CHAR_RANK(square);
-	result[3] = '\0';
+    if (GET_PS_KIND(ps)) {
+        result[j++] = _cpiece_char(GET_PS_SUBJECT(ps));
+        switch (GET_PS_KIND(ps)) {
+            case PS_ATTACKS:    result[j++]='>'; break;
+            case PS_DEFENDS:    result[j++]='<'; break;
+            case PS_XRAY:       result[j++]='}'; break;
+            default: 
+                BAD_TYPE_OUT("piecesquare", ps); 
+                break;
+        }
+    }
+
+	result[j++] = _cpiece_char(piece);
+	result[j++] = CHAR_CFILE(square);
+	result[j++] = CHAR_RANK(square);
+	result[j++] = '\0';
 	PG_RETURN_CSTRING(result);
 }
 
