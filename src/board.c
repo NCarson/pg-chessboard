@@ -201,7 +201,7 @@ static uint16 *_board_pieces(const Board * b)/*{{{*/
     for (int i=0; i<SQUARE_MAX; i++) {
         if (board[i] != NO_CPIECE) {
             p = board[i];
-            SET_PS(j, p, FROM_BB_IDX(i));
+            INIT_PS(j, p, FROM_BB_IDX(i));
             result[k] = j;
             if (k > b->pcount) CH_ERROR("_board_pieces: internal error: too many pieces");
             k++;
@@ -600,7 +600,6 @@ remove_pieces(PG_FUNCTION_ARGS)
 Datum
 heatmap(PG_FUNCTION_ARGS)
 {
-
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
     int32           heatmap[SQUARE_MAX];
     char            *str = palloc(SQUARE_MAX + 8 + 1);

@@ -498,12 +498,12 @@ Datum
 piecesquare_in(PG_FUNCTION_ARGS)
 {
 	char 		    	*str = PG_GETARG_CSTRING(0);
-    unsigned short      result=0;
+    uint16              result=0;
 	
 	if (strlen(str) != 3)
 		BAD_TYPE_IN("piecesquare", str);
 	
-	SET_PS(result, _cpiece_in(str[0]), _square_in(str[1], str[2]));
+	INIT_PS(result, _cpiece_in(str[0]), _square_in(str[1], str[2]));
     //debug_bits(result, 16);
 
 	PG_RETURN_INT16(result);
@@ -512,14 +512,19 @@ piecesquare_in(PG_FUNCTION_ARGS)
 Datum
 piecesquare_out(PG_FUNCTION_ARGS)
 {
-	unsigned short  ps = PG_GETARG_UINT16(0);
+	uint16          ps = PG_GETARG_UINT16(0);
 	char			*result = (char *) palloc(4);
     char            square, piece;
 
+    //debug_bits(ps, 16);
+
     square = GET_PS_SQUARE(ps);
+    //CH_NOTICE("square:%i", square);
     if (square < 0 || square >= SQUARE_MAX)
         BAD_TYPE_OUT("piecesquare", ps);
+
     piece = GET_PS_PIECE(ps);
+    //CH_NOTICE("piece:%i", piece);
     if (piece < 0 || piece >= CPIECE_MAX)
         BAD_TYPE_OUT("piecesquare", ps);
 
@@ -667,11 +672,3 @@ pfilter_out(PG_FUNCTION_ARGS)
 	PG_RETURN_CSTRING(result);
 }/*}}}*/
 
-
-/* +------+------+------+------+------+------+------+------+
- * | BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6 | BIT7 |
- * +------+------+------+------+------+------+------+------+
- * |      Number of     | PAWN |KNIGHT| ROOK | QUEEN| KING |
- * |      ATTACKERS     |      |BISHOP|      |      |      |
- * +------+------+------+------+------+------+------+------+
- */

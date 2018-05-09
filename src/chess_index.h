@@ -15,8 +15,13 @@
 #include "utils/array.h" 		//PG_RETURN_ARRAYTYPE_P(x)
 #include "utils/lsyscache.h"
 
-// defines
-//#define EXTRA_DEBUG 1/*{{{*/
+//#define EXTRA_DEBUG 1
+
+
+/********************************************************
+* 		defines
+********************************************************/
+///*{{{*/
 
 #define CH_NOTICE(...) ereport(NOTICE, (errcode(ERRCODE_INTERNAL_ERROR), errmsg(__VA_ARGS__)))
 #define CH_ERROR(...) ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg(__VA_ARGS__)))
@@ -55,10 +60,42 @@
 #define GET_BIT32(i32, k) (((i32) >> (k)) & (uint32)1)
 #define GET_BIT64(i64, k) (((i64) >> (k)) & (uint64)1)
 
-#define SET_PS(i16, p, s) ((i16) = ((s) | ((p) & 0xFF) <<8))
-#define GET_PS_PIECE(i16) (((i16) & 0xff00)>>8)
-#define GET_PS_SQUARE(i16) ((i16) & 0x00ff)
+// piecesquare type
+/* +------+------+------+------+------+------+------+------+
+ * | BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6 | BIT7 |
+ * +------+------+------+------+------+------+------+------+
+ * |                     square              |   kind      |
+ * |                                         |             |
+ * +------+------+------+------+------+------+------+------+
+ * +------+------+------+------+------+------+------+------+
+ * | BIT8 | BIT9 | BIT10| BIT11| BIT12| BIT13| BIT14| BIT15|
+ * +------+------+------+------+------+------+------+------+
+ * |      piece/target         |           subject         |
+ * |                           |                           |
+ * +------+------+------+------+------+------+------+------+
+ */
+#define PS_PIECE    0
+#define PS_ATTACKS  1
+#define PS_DEFENDS  2
+#define PS_XRAY     3
 
+#define PS_SQUARE_MASK  63
+#define PS_KIND_MASK    192
+#define PS_TARGET_MASK  3840
+#define PS_SUBJECT_MASK 61440
+
+#define GET_PS_SQUARE(i16) ((i16) & PS_SQUARE_MASK)
+#define GET_PS_KIND(i16) (((i16) & PS_KIND_MASK)>>6 )
+#define GET_PS_PIECE(i16) (((i16) & PS_TARGET_MASK)>>8 )
+#define GET_PS_SUBJECT(i16) (((i16) & PS_SUBJECT_MASK)>>12 )
+
+#define INIT_PS(i16, p, s) ((i16) =  ((p)<<8) | (s))
+#define SET_PS_KIND(i16, k) ((i16) = (i16) | ((k)<<6))
+#define SET_PS_SUBJECT(i16, p) ((i16) = (i16) | ((p)<<8))
+
+
+// board type
+//
 //XXX CHECK_BIT should start at SQUARE_MAX and decrement to be meaningful TO_SQUARE_IDX & TO_BB_IDX
 #define CHECK_BIT(board, k) ((1ull << (k)) & board)
 #define GET_PIECE(pieces, k) ((k)%2 ? pieces[(k)/2] & 0x0f : (pieces[(k)/2] & 0xf0) >> 4)
@@ -84,11 +121,9 @@
 #define DIR_SW -9
 
 /*}}}*/
-
 /********************************************************
 * 		types
 ********************************************************/
-
 /*{{{*/
 
 typedef                 uint64          bitboard_t; // for Board type storage
@@ -97,8 +132,9 @@ typedef                 unsigned char   board_t;    // for use with cpiece
 
 typedef enum            {BLACK, WHITE} side_t;
 
-typedef enum            {WHITE_PAWN, WHITE_KNIGHT, WHITE_BISHOP, WHITE_ROOK, WHITE_QUEEN, WHITE_KING,
-                         BLACK_PAWN, BLACK_KNIGHT, BLACK_BISHOP, BLACK_ROOK, BLACK_QUEEN, BLACK_KING, CPIECE_MAX, NO_CPIECE} cpiece_t;
+typedef enum            {NO_CPIECE, WHITE_PAWN, WHITE_KNIGHT, WHITE_BISHOP, WHITE_ROOK, WHITE_QUEEN, WHITE_KING,
+                                    BLACK_PAWN, BLACK_KNIGHT, BLACK_BISHOP, BLACK_ROOK, BLACK_QUEEN, BLACK_KING,
+                        CPIECE_MAX} cpiece_t;
 const cpiece_t          WHITE_PIECES[6];
 const cpiece_t          BLACK_PIECES[6];
 
@@ -158,6 +194,7 @@ void            debug_board(const board_t * b);
 char            _adiagonal_in(char square);
 char            _diagonal_in(char square);
 side_t          _cpiece_side(const cpiece_t p);
+void            debug_bits(uint64 a, unsigned char bits);
 
 #endif
 

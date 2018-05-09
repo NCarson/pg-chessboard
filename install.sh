@@ -31,6 +31,6 @@ if [[ "$CHECK" -eq 1 ]]; then
     make installcheck;
 fi
 
-psql -c"drop extension if exists chess_index cascade"
-psql -c"create extension chess_index"
+psql -c"drop extension if exists chess_index cascade" >/dev/null
+psql -c"create extension chess_index" >/dev/null
 cd ../chess_games && make > /dev/null
