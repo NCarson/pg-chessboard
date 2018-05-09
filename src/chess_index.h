@@ -89,10 +89,9 @@
 #define GET_PS_PIECE(i16)       (((i16) & PS_TARGET_MASK)>>8 )
 #define GET_PS_SUBJECT(i16)     (((i16) & PS_SUBJECT_MASK)>>12 )
 
-#define INIT_PS(i16, p, s)      ((i16) = ((p)<<8) | (s))
+#define INIT_PS(i16, p, s)      do {i16=0; ((i16) = ((p)<<8) | (s)); } while(0)
 #define SET_PS_KIND(i16, k)     ((i16) = ((k)<<6) | (i16))
 #define SET_PS_SUBJECT(i16, p)  ((i16) = ((p)<<12) | (i16) )
-
 
 // board type
 //
@@ -101,8 +100,8 @@
 #define GET_PIECE(pieces, k) ((k)%2 ? pieces[(k)/2] & 0x0f : (pieces[(k)/2] & 0xf0) >> 4)
 #define SET_PIECE(pieces, k, v) (pieces[(k)/2] = (k)%2 ? ( (pieces[(k)/2] & 0xF0) | ((v) & 0xF)) : ((pieces[(k)/2] & 0x0F) | ((v) & 0xF) << 4))
 
-#define TO_SQUARE_IDX(i)  (((i)/8)*8 + (8 - (i)%8) - 1) //from a fen string
-#define FROM_BB_IDX(i) ( 63 - ((i)/8)*8 - (7 - (i)%8))  // from bb to square idx
+#define TO_SQUARE_IDX(i)  (((i)/8)*8 + (8 - (i)%8) - 1) // from a fen string
+#define FROM_BB_IDX(i) ( 63 - ((i)/8)*8 - (7 - (i)%8))  // from cpiece board to square idx
 #define TO_BB_IDX(i) (56 - (i/8)*8 + (i%8))             // from square idx to bb idx
 
 #define PIECE_SIZE(k) ((k)/2 + ((k)%2))

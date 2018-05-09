@@ -35,6 +35,7 @@ PG_FUNCTION_INFO_V1(_pieces);
 PG_FUNCTION_INFO_V1(board_to_fen);
 PG_FUNCTION_INFO_V1(remove_pieces);
 PG_FUNCTION_INFO_V1(heatmap);
+PG_FUNCTION_INFO_V1(_attacks);
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
 #define SIZEOF_BOARD(k) (sizeof(Board) + SIZEOF_PIECES(k))
@@ -212,91 +213,120 @@ static uint16 *_board_pieces(const Board * b)/*{{{*/
 }/*}}}*/
 
 //TODO en passant
-static int *_board_heatmap(const Board * b, int * heatmap)
+static int _board_attacks(const Board * b, int * heatmap, uint16 * piecesquares)
 {
-    unsigned char       s, p, k=0, count=0, dcount=0;
+    unsigned char       s, p, k=0, count=0, dcount=0, subject, target;
+    uint16              ps;
     int                 sign;
+    size_t              n=0;
     const int           *dirs=0;
+    board_t             *board = _bitboard_to_board(b);
 
-    for (int i=SQUARE_MAX-1; i>=0; i--)
+    //debug_bitboard(b->board);
+    //debug_board(board);
+
+    for (int i=0; i<SQUARE_MAX; i++)
     {
-                    //CH_NOTICE("s:%c%c %d", CHAR_CFILE(s), CHAR_RANK(s), s);
-        s = TO_SQUARE_IDX(i);
-        if (CHECK_BIT(b->board, i)) {
-            p = _piece_type(GET_PIECE(b->pieces, k));
-            sign = _cpiece_side(GET_PIECE(b->pieces, k))==WHITE ? 1 : -1;
-            switch (p)
-            {
-                case PAWN:
-                    dirs = BISHOP_DIRS;
-                    count = 1;
-                    dcount = 4;
+        if (!board[i]) 
+            continue;
+
+        s = FROM_BB_IDX(i);
+        subject = board[i];
+        //CH_NOTICE("subject: %d", subject);
+        p = _piece_type(subject);
+        sign = _cpiece_side(subject)==WHITE ? 1 : -1;
+        switch (p)
+        {
+            case PAWN:
+                dirs = BISHOP_DIRS;
+                count = 1;
+                dcount = 4;
+                break;
+            case KNIGHT:
+                dirs = KNIGHT_DIRS;
+                count = 1;
+                dcount = 8;
+                break;
+            case KING:
+                dirs = QUEEN_DIRS;
+                count = 1;
+                dcount = 8;
+                break;
+
+            //sliders
+            case QUEEN:
+                dirs = QUEEN_DIRS;
+                count = 255;
+                dcount = 8;
+                break;
+            case ROOK:
+                dirs = ROOK_DIRS;
+                count = 255;
+                dcount = 4;
+                break;
+            case BISHOP:
+                dirs = BISHOP_DIRS;
+                count = 255;
+                dcount = 4;
+                break;
+
+            default:
+                CH_ERROR("internal error: unknown cpiece type %d", p);
+                break;
+        }
+        k++;
+        for (int i=0, blockers, d, ss, cc; i<dcount; i++) {
+            blockers=0;
+            ss = s;
+            cc = count;
+            d = dirs[i];
+            //CH_NOTICE("dir:%d", d);
+            while(cc > 0) {
+                ss += d;
+                if (ss < 0 || ss >= SQUARE_MAX) // off board
                     break;
-                case KNIGHT:
-                    dirs = KNIGHT_DIRS;
-                    count = 1;
-                    dcount = 8;
+                if ((d==DIR_W || d==DIR_E) && CHANGED_RANK(s, ss))
                     break;
-                case KING:
-                    dirs = QUEEN_DIRS;
-                    count = 1;
-                    dcount = 8;
+                if ((d==DIR_N || d==DIR_S) && CHANGED_FILE(s, ss))
+                    break;
+                // we could find diagonals with rotated bitboards instead of functions
+                // https://chessprogramming.wikispaces.com/Flipping%20Mirroring%20and%20Rotating
+                if ((d==DIR_NE || d==DIR_SW) && _adiagonal_in(s) !=_adiagonal_in(ss))
+                    break;
+                if ((d==DIR_NW || d==DIR_SE) && _diagonal_in(s) !=_diagonal_in(ss))
+                    break;
+                if (p==PAWN && sign > 0 && d < 0)
+                    break;
+                if (p==PAWN && sign < 0 && d > 0)
                     break;
 
-                //sliders
-                case QUEEN:
-                    dirs = QUEEN_DIRS;
-                    count = 255;
-                    dcount = 8;
-                    break;
-                case ROOK:
-                    dirs = ROOK_DIRS;
-                    count = 255;
-                    dcount = 4;
-                    break;
-                case BISHOP:
-                    dirs = BISHOP_DIRS;
-                    count = 255;
-                    dcount = 4;
-                    break;
+                cc--;
+                heatmap[ss] += sign;
+                if (board[TO_BB_IDX(ss)]) {
+                    target = board[TO_BB_IDX(ss)];
 
-                default:
-                    CH_ERROR("internal error: unknown cpiece type %d", p);
-                    break;
-            }
-            k++;
-            for (int i=0, d, ss, cc; i<dcount; i++) {
-                ss = s;
-                cc = count;
-                d = dirs[i];
-                CH_NOTICE("dir:%d", d);
-                while(cc > 0) {
-                    ss += d;
-                    if (ss < 0 || ss >= SQUARE_MAX) // off board
-                        break;
-                    if ((d==DIR_W || d==DIR_E) && CHANGED_RANK(s, ss))
-                        break;
-                    if ((d==DIR_N || d==DIR_S) && CHANGED_FILE(s, ss))
-                        break;
-                    // we could find diagonals with rotated bitboards instead of functions
-                    // https://chessprogramming.wikispaces.com/Flipping%20Mirroring%20and%20Rotating
-                    if ((d==DIR_NE || d==DIR_SW) && _adiagonal_in(s) !=_adiagonal_in(ss))
-                        break;
-                    if ((d==DIR_NW || d==DIR_SE) && _diagonal_in(s) !=_diagonal_in(ss))
-                        break;
-                    if (p==PAWN && sign > 0 && d < 0)
-                        break;
-                    if (p==PAWN && sign < 0 && d > 0)
-                        break;
+                    //CH_NOTICE("target: %d", target);
+                    //CH_NOTICE("%c%c%c > %c%c%c", 
+                    //      _cpiece_char(subject), CHAR_CFILE(s), CHAR_RANK(s), 
+                    //      _cpiece_char(target), CHAR_CFILE(ss), CHAR_RANK(ss));
+                    INIT_PS(ps, target, ss);
+                    SET_PS_SUBJECT(ps, subject);
 
-                    CH_DEBUG_SQUARE(ss);
-                    cc--;
-                    heatmap[ss] += sign;
+                    if (blockers==1)
+                        SET_PS_KIND(ps, PS_XRAY);
+                    else if (_cpiece_side(target) == _cpiece_side(subject))
+                        SET_PS_KIND(ps, PS_DEFENDS);
+                    else
+                        SET_PS_KIND(ps, PS_ATTACKS);
+                    piecesquares[n++] = ps;
+                    blockers++;
+                    if (blockers>1)
+                        break;
                 }
             }
         }
     }
-    return heatmap;
+    return n;
 }
 
 
@@ -602,12 +632,13 @@ heatmap(PG_FUNCTION_ARGS)
 {
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
     int32           heatmap[SQUARE_MAX];
+    uint16          piecesquares[PIECE_MAX*PIECE_MAX];
     char            *str = palloc(SQUARE_MAX + 8 + 1);
     int             j=0;
 
     memset(heatmap, 0, sizeof(int32) * SQUARE_MAX);
-    
-    _board_heatmap(b, heatmap);
+    memset(piecesquares, 0, sizeof(uint16) * PIECE_MAX * PIECE_MAX);
+    _board_attacks(b, heatmap, piecesquares);
 
     for (int i=0, v; i<SQUARE_MAX; i++)
     {
@@ -619,6 +650,26 @@ heatmap(PG_FUNCTION_ARGS)
     str[j] = '\0';
 
     PG_RETURN_CSTRING(str);
+}
+
+Datum
+_attacks(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    int32           heatmap[SQUARE_MAX];
+    uint16          pieces[PIECE_MAX*PIECE_MAX];
+    int             n = _board_attacks(b, heatmap, pieces);
+
+    ArrayType       *a;
+	Datum *d 		= (Datum *) palloc(sizeof(Datum) * n);
+
+	for (int i = 0; i<n; i++) { 
+		d[i] = UInt16GetDatum(pieces[i]);
+        //CH_NOTICE("i:%i, piecesquare: %i", i,d[i]);
+	}
+	a = construct_array(d, n, INT2OID, sizeof(uint16), true, 's');
+
+    PG_RETURN_ARRAYTYPE_P(a);
 }
 
 /*}}}*/

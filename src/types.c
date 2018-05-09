@@ -547,7 +547,7 @@ piecesquare_out(PG_FUNCTION_ARGS)
         switch (GET_PS_KIND(ps)) {
             case PS_ATTACKS:    result[j++]='>'; break;
             case PS_DEFENDS:    result[j++]='<'; break;
-            case PS_XRAY:       result[j++]='}'; break;
+            case PS_XRAY:       result[j++]='-'; break;
             default: 
                 BAD_TYPE_OUT("piecesquare", ps); 
                 break;

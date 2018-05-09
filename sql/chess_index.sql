@@ -451,25 +451,32 @@ RETURNS pindex AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION _pieces(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION pieces(board)
-RETURNS piecesquare[] AS $$
-    select "_pieces"($1)::piecesquare[]
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-CREATE CAST (board as piecesquare[]) WITH FUNCTION pieces;
-
 CREATE FUNCTION piecesquares_to_board(piecesquare[], text)
 RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION piecesquares_to_board(piecesquare[])
-RETURNS board AS $$ 
-    select piecesquares_to_board($1, 'w - -'::text)
-$$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE FUNCTION remove_pieces(board, pfilter)
 RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION heatmap(board)
 RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION piecesquares_to_board(piecesquare[])
+RETURNS board AS $$ 
+    select piecesquares_to_board($1, 'w - -'::text)
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION pieces(board)
+RETURNS piecesquare[] AS $$
+    select "_pieces"($1)::piecesquare[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+CREATE CAST (board as piecesquare[]) WITH FUNCTION pieces;
+
+CREATE FUNCTION _attacks(board)
+RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+CREATE OR REPLACE FUNCTION attacks(board)
+RETURNS piecesquare[] AS $$
+    select "_attacks"($1)::piecesquare[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
 
 /*---------------------------------------/
 /  ops                                   /
