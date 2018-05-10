@@ -36,6 +36,7 @@ PG_FUNCTION_INFO_V1(board_to_fen);
 PG_FUNCTION_INFO_V1(remove_pieces);
 PG_FUNCTION_INFO_V1(heatmap);
 PG_FUNCTION_INFO_V1(_attacks);
+PG_FUNCTION_INFO_V1(_mobility);
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
 #define SIZEOF_BOARD(k) (sizeof(Board) + SIZEOF_PIECES(k))
@@ -213,7 +214,7 @@ static uint16 *_board_pieces(const Board * b)/*{{{*/
 }/*}}}*/
 
 //TODO en passant
-static int _board_attacks(const Board * b, int * heatmap, uint16 * piecesquares)
+static int _board_attacks(const Board * b, int * heatmap, uint16 * piecesquares, bool mobility)
 {
     unsigned char       s, p, k=0, count=0, dcount=0, subject, target;
     uint16              ps;
@@ -302,8 +303,18 @@ static int _board_attacks(const Board * b, int * heatmap, uint16 * piecesquares)
 
                 cc--;
                 heatmap[ss] += sign;
-                if (board[TO_BB_IDX(ss)]) {
-                    target = board[TO_BB_IDX(ss)];
+                target = board[TO_BB_IDX(ss)];
+
+                // if mobility (only)
+                if (mobility) {
+                    if (p==PAWN)
+                        continue;
+                    INIT_PS(ps, subject, ss);
+                    SET_PS_SUBJECT(ps, CPIECE_MOBILITY);
+                    piecesquares[n++] = ps;
+
+                // else attacks (only)
+                } else if (target){
 
                     //CH_NOTICE("target: %d", target);
                     //CH_NOTICE("%c%c%c > %c%c%c", 
@@ -312,6 +323,7 @@ static int _board_attacks(const Board * b, int * heatmap, uint16 * piecesquares)
                     INIT_PS(ps, target, ss);
                     SET_PS_SUBJECT(ps, subject);
 
+                    //xray does not diff attack/defend
                     if (blockers==1)
                         SET_PS_KIND(ps, PS_XRAY);
                     else if (_cpiece_side(target) == _cpiece_side(subject))
@@ -319,10 +331,12 @@ static int _board_attacks(const Board * b, int * heatmap, uint16 * piecesquares)
                     else
                         SET_PS_KIND(ps, PS_ATTACKS);
                     piecesquares[n++] = ps;
-                    blockers++;
                     if (blockers>1)
                         break;
                 }
+
+                if (target)
+                    blockers++;
             }
         }
     }
@@ -638,7 +652,7 @@ heatmap(PG_FUNCTION_ARGS)
 
     memset(heatmap, 0, sizeof(int32) * SQUARE_MAX);
     memset(piecesquares, 0, sizeof(uint16) * PIECE_MAX * PIECE_MAX);
-    _board_attacks(b, heatmap, piecesquares);
+    _board_attacks(b, heatmap, piecesquares, true);
 
     for (int i=0, v; i<SQUARE_MAX; i++)
     {
@@ -658,7 +672,27 @@ _attacks(PG_FUNCTION_ARGS)
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
     int32           heatmap[SQUARE_MAX];
     uint16          pieces[PIECE_MAX*PIECE_MAX];
-    int             n = _board_attacks(b, heatmap, pieces);
+    int             n = _board_attacks(b, heatmap, pieces, false);
+
+    ArrayType       *a;
+	Datum *d 		= (Datum *) palloc(sizeof(Datum) * n);
+
+	for (int i = 0; i<n; i++) { 
+		d[i] = UInt16GetDatum(pieces[i]);
+        //CH_NOTICE("i:%i, piecesquare: %i", i,d[i]);
+	}
+	a = construct_array(d, n, INT2OID, sizeof(uint16), true, 's');
+
+    PG_RETURN_ARRAYTYPE_P(a);
+}
+
+Datum
+_mobility(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    int32           heatmap[SQUARE_MAX];
+    uint16          pieces[PIECE_MAX*PIECE_MAX];
+    int             n = _board_attacks(b, heatmap, pieces, true);
 
     ArrayType       *a;
 	Datum *d 		= (Datum *) palloc(sizeof(Datum) * n);

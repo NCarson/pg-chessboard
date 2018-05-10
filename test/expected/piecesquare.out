@@ -10,13 +10,13 @@ select expected_or_fail_bool('Q>pa1'::piecesquare::text = 'Q>pa1', true);
  
 (1 row)
 
-select expected_or_fail_bool('Q<ph8'::piecesquare::text = 'Q<ph8', true);
+select expected_or_fail_bool('Q/ph8'::piecesquare::text = 'Q/ph8', true);
  expected_or_fail_bool 
 -----------------------
  
 (1 row)
 
-select expected_or_fail_bool('Q}pa1'::piecesquare::text = 'Q}pa1', true);
+select expected_or_fail_bool('Q-pa1'::piecesquare::text = 'Q-pa1', true);
  expected_or_fail_bool 
 -----------------------
  

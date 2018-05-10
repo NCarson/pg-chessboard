@@ -503,13 +503,19 @@ piecesquare_in(PG_FUNCTION_ARGS)
 	
 	if (strlen(str) == 3)
         INIT_PS(result, _cpiece_in(str[0]), _square_in(str[1], str[2]));
-    else if (strlen(str) == 5) {
+    else if (strlen(str)==4) {
+        if (str[0] != '+')
+            BAD_TYPE_IN("piecesquare", str); 
+        INIT_PS(result, _cpiece_in(str[1]), _square_in(str[2], str[3]));
+        SET_PS_SUBJECT(result, CPIECE_MOBILITY);
+
+    } else if (strlen(str) == 5) {
         INIT_PS(result, _cpiece_in(str[2]), _square_in(str[3], str[4]));
         SET_PS_SUBJECT(result, _cpiece_in(str[0]));
         switch (str[1]) {
             case '>': kind=PS_ATTACKS; break;
-            case '<': kind=PS_DEFENDS; break;
-            case '}': kind=PS_XRAY; break;
+            case '/': kind=PS_DEFENDS; break;
+            case '-': kind=PS_XRAY; break;
             default: 
                 BAD_TYPE_IN("piecesquare", str); 
                 break;
@@ -542,11 +548,15 @@ piecesquare_out(PG_FUNCTION_ARGS)
     if (piece < 0 || piece >= CPIECE_MAX)
         BAD_TYPE_OUT("piecesquare", ps);
 
-    if (GET_PS_KIND(ps)) {
+    //mobility type 
+    if (GET_PS_SUBJECT(ps)==CPIECE_MOBILITY)
+        result[j++]='+';
+
+    else if (GET_PS_KIND(ps)) {
         result[j++] = _cpiece_char(GET_PS_SUBJECT(ps));
         switch (GET_PS_KIND(ps)) {
             case PS_ATTACKS:    result[j++]='>'; break;
-            case PS_DEFENDS:    result[j++]='<'; break;
+            case PS_DEFENDS:    result[j++]='/'; break;
             case PS_XRAY:       result[j++]='-'; break;
             default: 
                 BAD_TYPE_OUT("piecesquare", ps); 

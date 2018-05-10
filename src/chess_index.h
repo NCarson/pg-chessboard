@@ -133,7 +133,7 @@ typedef enum            {BLACK, WHITE} side_t;
 
 typedef enum            {NO_CPIECE, WHITE_PAWN, WHITE_KNIGHT, WHITE_BISHOP, WHITE_ROOK, WHITE_QUEEN, WHITE_KING,
                                     BLACK_PAWN, BLACK_KNIGHT, BLACK_BISHOP, BLACK_ROOK, BLACK_QUEEN, BLACK_KING,
-                        CPIECE_MAX} cpiece_t;
+                        CPIECE_MAX, CPIECE_MOBILITY} cpiece_t;
 const cpiece_t          WHITE_PIECES[6];
 const cpiece_t          BLACK_PIECES[6];
 

@@ -478,6 +478,13 @@ RETURNS piecesquare[] AS $$
     select "_attacks"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
+CREATE FUNCTION _mobility(board)
+RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+CREATE OR REPLACE FUNCTION mobility(board)
+RETURNS piecesquare[] AS $$
+    select "_mobility"($1)::piecesquare[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
 /*---------------------------------------/
 /  ops                                   /
 /---------------------------------------*/
@@ -713,7 +720,7 @@ RETURNS text AS $$
             , '2', case when not $2 then '..' else U&'.\200A.\200A' end) 
             , '1', case when not $2 then '.' else U&'.\200A' end) 
 
-        || E'\n' || split_part($1, ' ', 2)
+        || '  ' || split_part($1, ' ', 2)
         || '  '  || split_part($1, ' ', 3)
         || '  '  || split_part($1, ' ', 4)
         || '  '  || split_part($1, ' ', 5)
@@ -733,11 +740,42 @@ RETURNS text AS $$
     select translate($1::text, 'KQRBNPkqrbnpwb', 'kqrbnpKQRBNPbw')
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION piece_string(board)
+CREATE OR REPLACE FUNCTION piece_string(piecesquare[])
 RETURNS text AS $$
     select string_agg(t, ' ')
     from  (
-        select  unnest(p)::text as t from (select pieces p from pieces($1)) as t
+        select  unnest($1)::text as t
     ) tt
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION piece_string_and(piecesquare[])
+RETURNS text AS $$
+    select string_agg(t, ' & ')
+    from  (
+        select  unnest($1)::text as t
+    ) tt
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION to_tsvector(board)
+RETURNS tsvector AS $$
+    select 
+    (
+           piece_string_and(pieces($1)) || ' '
+        || piece_string_and(mobility($1)) || ' '
+        || piece_string_and(attacks($1))
+    )::tsvector
+
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION to_tsquery(board)
+RETURNS tsquery AS $$
+    select 
+    (
+           piece_string_and(pieces($1)) || ' & '
+        || piece_string_and(mobility($1)) || ' & '
+        || piece_string_and(attacks($1))
+    )::tsquery
+
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
 /*}}}*/
