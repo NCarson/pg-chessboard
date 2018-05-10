@@ -299,14 +299,10 @@ CREATE OPERATOR CLASS hash_square_ops
 ****************************************************************************/
 /*{{{*/
 CREATE FUNCTION cpiece_in(cstring)
-RETURNS cpiece
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
+RETURNS cpiece AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION cpiece_out(cpiece)
-RETURNS cstring
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE TYPE cpiece(
     INPUT          = cpiece_in,
@@ -317,6 +313,9 @@ CREATE TYPE cpiece(
 	STORAGE        = PLAIN,
 	PASSEDBYVALUE         
 );
+
+CREATE FUNCTION cpiece_value(cpiece)
+RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION pretty(cpiece)
 RETURNS text AS $$

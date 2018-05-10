@@ -42,9 +42,9 @@ square numbers
 /********************************************************
  * 		defines
  ********************************************************/
+
 // function info
 ///*{{{*/
-
 
 PG_FUNCTION_INFO_V1(pindex_in);
 PG_FUNCTION_INFO_V1(pindex_out);
@@ -66,6 +66,7 @@ PG_FUNCTION_INFO_V1(piecesquares_to_board);
 
 PG_FUNCTION_INFO_V1(cpiece_in);
 PG_FUNCTION_INFO_V1(cpiece_out);
+PG_FUNCTION_INFO_V1(cpiece_value);
 
 PG_FUNCTION_INFO_V1(cfile_in);
 PG_FUNCTION_INFO_V1(cfile_out);
@@ -96,7 +97,7 @@ PG_FUNCTION_INFO_V1(pfilter_out);
 Datum
 cpiece_in(PG_FUNCTION_ARGS)
 {
-	char 			*str = PG_GETARG_CSTRING(0);
+	char        *str = PG_GETARG_CSTRING(0);
 
 	if (strlen(str) != 1)
 		BAD_TYPE_IN("piece", str);
@@ -108,13 +109,35 @@ cpiece_in(PG_FUNCTION_ARGS)
 Datum
 cpiece_out(PG_FUNCTION_ARGS)
 {
-	char			piece = PG_GETARG_CHAR(0);
+	cpiece_t        piece = PG_GETARG_CHAR(0);
 	char			*result = (char *) palloc(2);
 
 	result[0] = _cpiece_char(piece);
 	result[1] = '\0';
 
 	PG_RETURN_CSTRING(result);
+}
+
+Datum
+cpiece_value(PG_FUNCTION_ARGS)
+{
+	cpiece_t	    piece = PG_GETARG_CHAR(0);
+    int32           result;
+
+    switch (_piece_type(piece)) {
+        case NO_PIECE:  result=0; break;
+        case PAWN:      result=1; break;
+        case KNIGHT:    result=3; break;
+        case BISHOP:    result=3; break;
+        case ROOK:      result=5; break;
+        case QUEEN:     result=9; break;
+        case KING:      result=0; break;
+
+        default:
+            BAD_TYPE_OUT("piece", piece);
+    }
+
+	PG_RETURN_INT32(result);
 }
 
 /*}}}*/

@@ -11,7 +11,10 @@ const int               PIECE_INDEX_COUNTS[] = {1, 2, 2, 2, 8};
 const cpiece_t          WHITE_PIECES[] = {WHITE_QUEEN, WHITE_ROOK, WHITE_BISHOP, WHITE_KNIGHT, WHITE_PAWN};
 const cpiece_t          BLACK_PIECES[] = {BLACK_QUEEN, BLACK_ROOK, BLACK_BISHOP, BLACK_KNIGHT, BLACK_PAWN};
 
-
+/********************************************************
+* 		old masks
+********************************************************/
+/*{{{*/
 /*
 // file a - h
 const int64 File_Mask = {
@@ -77,7 +80,7 @@ const int64 ADiagonal_Mask = {
 }
 */
 
-
+/*}}}*/
 
 //FIXME get rid of this
 #define MAKE_SQUARE(file, rank, str) {str[0]=file; str[1]=rank;}
