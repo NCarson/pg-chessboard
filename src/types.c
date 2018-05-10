@@ -122,22 +122,7 @@ Datum
 cpiece_value(PG_FUNCTION_ARGS)
 {
 	cpiece_t	    piece = PG_GETARG_CHAR(0);
-    int32           result;
-
-    switch (_piece_type(piece)) {
-        case NO_PIECE:  result=0; break;
-        case PAWN:      result=1; break;
-        case KNIGHT:    result=3; break;
-        case BISHOP:    result=3; break;
-        case ROOK:      result=5; break;
-        case QUEEN:     result=9; break;
-        case KING:      result=0; break;
-
-        default:
-            BAD_TYPE_OUT("piece", piece);
-    }
-
-	PG_RETURN_INT32(result);
+	PG_RETURN_INT32(_cpiece_value(piece));
 }
 
 /*}}}*/

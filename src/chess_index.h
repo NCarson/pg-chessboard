@@ -179,6 +179,7 @@ uint16          _pindex_in(char * str);
 char            _square_in(char file, char rank);
 char            _piece_char(const piece_t p);
 char            _cpiece_char(const cpiece_t p);
+int             _cpiece_value(const cpiece_t p) ;
 cpiece_t        _cpiece_type(const piece_t p, bool iswhite);
 cpiece_t        _cpiece_in(char c);
 piece_t         _piece_type(const cpiece_t p);
@@ -194,6 +195,7 @@ char            _adiagonal_in(char square);
 char            _diagonal_in(char square);
 side_t          _cpiece_side(const cpiece_t p);
 void            debug_bits(uint64 a, unsigned char bits);
+
 
 #endif
 

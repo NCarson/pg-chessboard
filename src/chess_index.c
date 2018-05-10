@@ -133,6 +133,10 @@ unsigned short _pindex_in(char * str)
     return result;
 }/*}}}*/
 
+/********************************************************
+* 		square
+********************************************************/
+/*{{{*/
 char _square_in(char file, char rank)
 {
     char			c=0;
@@ -161,7 +165,7 @@ char _square_in(char file, char rank)
         CH_ERROR("bad conversion for square %s" ,square);
     }
     return c;
-}
+}/*}}}*/
 /********************************************************
 * 		piece
 ********************************************************/
@@ -263,6 +267,28 @@ char _cpiece_char(const cpiece_t p)
         case BLACK_ROOK:    result='r'; break;
         case BLACK_QUEEN:   result='q'; break;
         case BLACK_KING:    result='k'; break;
+        default:
+            CH_ERROR("bad cpiece_t: %i", p); break;
+    }
+    return result;
+}
+
+int _cpiece_value(const cpiece_t p) 
+{
+    char                result;
+    switch (p) {
+        case WHITE_PAWN:    result= 1; break;
+        case WHITE_KNIGHT:  result= 3; break;
+        case WHITE_BISHOP:  result= 3; break;
+        case WHITE_ROOK:    result= 5; break;
+        case WHITE_QUEEN:   result= 9; break;
+        case WHITE_KING:    result= 0; break;
+        case BLACK_PAWN:    result=-1; break;
+        case BLACK_KNIGHT:  result=-3; break;
+        case BLACK_BISHOP:  result=-3; break;
+        case BLACK_ROOK:    result=-5; break;
+        case BLACK_QUEEN:   result=-9; break;
+        case BLACK_KING:    result= 0; break;
         default:
             CH_ERROR("bad cpiece_t: %i", p); break;
     }
