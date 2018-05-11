@@ -6,5 +6,7 @@ data/*.bz2
 *.swp
 *.log
 
+test.sql
+
 regression.out
 regression.diffs

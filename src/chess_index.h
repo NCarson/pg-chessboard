@@ -175,25 +175,29 @@ typedef struct {
 // declarations
   
 uint32          _sdbm_hash(char * str);
+
 uint16          _pindex_in(char * str);
 char            _square_in(char file, char rank);
-char            _piece_char(const piece_t p);
+char            _adiagonal_in(char square);
+char            _diagonal_in(char square);
+
 char            _cpiece_char(const cpiece_t p);
 int             _cpiece_value(const cpiece_t p) ;
 cpiece_t        _cpiece_type(const piece_t p, bool iswhite);
 cpiece_t        _cpiece_in(char c);
+side_t          _cpiece_side(const cpiece_t p);
+
 piece_t         _piece_type(const cpiece_t p);
 piece_t         _piece_in(char c);
+char            _piece_char(const piece_t p);
 
 board_t *       _bitboard_to_board(const Board *);
 bitboard_t      _board_to_bitboard(pieces_t * pieces, const board_t * board);
 Board *         _init_board(Board * b, int psize);
 void            _board_footer_in(Board * b, const char * str);
+
 void            debug_bitboard(const bitboard_t a);
 void            debug_board(const board_t * b);
-char            _adiagonal_in(char square);
-char            _diagonal_in(char square);
-side_t          _cpiece_side(const cpiece_t p);
 void            debug_bits(uint64 a, unsigned char bits);
 
 

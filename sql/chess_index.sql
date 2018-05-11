@@ -441,14 +441,18 @@ CREATE TYPE board(
 
 CREATE FUNCTION footer(board)
 RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
 CREATE FUNCTION pcount(board)
 RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
 CREATE FUNCTION side(board)
 RETURNS side AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION score(board)
+RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
 CREATE FUNCTION pieceindex(board, side)
 RETURNS pindex AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-CREATE FUNCTION _pieces(board)
-RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION piecesquares_to_board(piecesquare[], text)
 RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
@@ -464,6 +468,8 @@ RETURNS board AS $$
     select piecesquares_to_board($1, 'w - -'::text)
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
+CREATE FUNCTION _pieces(board)
+RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 CREATE OR REPLACE FUNCTION pieces(board)
 RETURNS piecesquare[] AS $$
     select "_pieces"($1)::piecesquare[]
@@ -704,7 +710,7 @@ RETURNS text AS $$
             translate
             (
                  split_part($1, ' ', 1)
-                , case when $2 then '/kqrbnpKQRBNP' else '/' end
+                , case when $2 then '/KQRBNPkqrbnp' else '/' end
                 , case when $2
                     then E'\n' || U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F'
                     else E'\n'  

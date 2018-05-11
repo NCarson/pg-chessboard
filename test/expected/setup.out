@@ -19,6 +19,8 @@ BEGIN
 END;
 $body$
 LANGUAGE plpgsql;
+drop table if exists position;
+NOTICE:  table "position" does not exist, skipping
 CREATE TABLE position(
      fen            board           not null
 );

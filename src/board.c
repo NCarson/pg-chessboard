@@ -37,6 +37,7 @@ PG_FUNCTION_INFO_V1(remove_pieces);
 PG_FUNCTION_INFO_V1(heatmap);
 PG_FUNCTION_INFO_V1(_attacks);
 PG_FUNCTION_INFO_V1(_mobility);
+PG_FUNCTION_INFO_V1(score);
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
 #define SIZEOF_BOARD(k) (sizeof(Board) + SIZEOF_PIECES(k))
@@ -185,6 +186,7 @@ static char *_board_pieceindex(const Board * b, side_t go)/*{{{*/
     return result;
 }/*}}}*/
 
+//XXX this a pretty slow way to do this
 static uint16 *_board_pieces(const Board * b)/*{{{*/
 {
 
@@ -704,6 +706,20 @@ _mobility(PG_FUNCTION_ARGS)
 	a = construct_array(d, n, INT2OID, sizeof(uint16), true, 's');
 
     PG_RETURN_ARRAYTYPE_P(a);
+}
+
+Datum
+score(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    uint16			*pieces= _board_pieces(b);
+    int             result=0;
+
+	for (int i = 0; i < b->pcount; i++) { 
+        result += _cpiece_value(GET_PIECE(b->pieces, i));
+	}
+
+    PG_RETURN_INT32(result);
 }
 
 /*}}}*/

@@ -23,7 +23,7 @@ END;
 $body$
 LANGUAGE plpgsql;
 
-
+drop table if exists position;
 CREATE TABLE position(
      fen            board           not null
 );
