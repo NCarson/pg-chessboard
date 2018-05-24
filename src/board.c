@@ -1,6 +1,8 @@
 
 #include "chess_index.h"
 
+#include "utils/varbit.h"
+
 /********************************************************
  **     board
  ********************************************************/
@@ -38,6 +40,7 @@ PG_FUNCTION_INFO_V1(heatmap);
 PG_FUNCTION_INFO_V1(_attacks);
 PG_FUNCTION_INFO_V1(_mobility);
 PG_FUNCTION_INFO_V1(score);
+PG_FUNCTION_INFO_V1(bitboard);
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
 #define SIZEOF_BOARD(k) (sizeof(Board) + SIZEOF_PIECES(k))
@@ -712,7 +715,6 @@ Datum
 score(PG_FUNCTION_ARGS)
 {
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
-    uint16			*pieces= _board_pieces(b);
     int             result=0;
 
 	for (int i = 0; i < b->pcount; i++) { 
@@ -720,6 +722,51 @@ score(PG_FUNCTION_ARGS)
 	}
 
     PG_RETURN_INT32(result);
+}
+
+Datum
+bitboard(PG_FUNCTION_ARGS)
+{
+    const Board         *b = (Board *) PG_GETARG_POINTER(0);
+    const cpiece_t      piece = PG_GETARG_INT16(1);
+
+    /*
+    typedef struct
+    {
+        int32       vl_len_;        // varlena header (do not touch directly!) /
+        int32       bit_len;        // number of valid bits /
+        bits8       bit_dat[FLEXIBLE_ARRAY_MEMBER];  bit string, most sig. byte * first /
+    } VarBit;
+    */
+    // bits8 is always going to be 1 byte?
+    size_t          bsize = sizeof(bits8);
+    VarBit          *result = (VarBit *) palloc(VARBITTOTALLEN(SQUARE_MAX)); //VARHDRSZ + sizeof(int32) + SQUARE_MAX/bsize);
+    
+    bits8           *r = result->bit_dat;
+    bits8           x = HIGHBIT;
+
+    memset(result, 0, VARBITTOTALLEN(SQUARE_MAX));
+	for (int i=SQUARE_MAX-1, k=0; i>=0; i--)
+	{
+		if (CHECK_BIT(b->board, i)) 
+        {
+            if (GET_PIECE(b->pieces, k)==piece)
+			*r |= x;
+            k++;
+        }
+
+		x >>= 1;
+		if (x == 0)
+		{
+			x = HIGHBIT;
+			r++;
+		}
+	}
+
+    SET_VARSIZE(result, VARHDRSZ + sizeof(int32) + SQUARE_MAX/bsize);
+    result->bit_len = SQUARE_MAX;
+
+    PG_RETURN_VARBIT_P(result);
 }
 
 /*}}}*/

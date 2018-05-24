@@ -50,12 +50,17 @@
 #define CHAR_CFILE(s) ('a' + TO_FILE(s))
 #define CHAR_RANK(s) ('1' + TO_RANK(s))
 
+#define SET_BIT8(i8, k)   ((i8)  |= ((bits8)1 << (k)))
 #define SET_BIT16(i16, k) ((i16) |= ((uint16)1 << (k)))
 #define SET_BIT32(i32, k) ((i32) |= ((uint32)1 << (k)))
 #define SET_BIT64(i64, k) ((i64) |= ((uint64)1 << (k)))
+
+#define CLEAR_BIT8(i8, k)   ((i8)  &= ~((bits8)1 << (k)))
 #define CLEAR_BIT16(i16, k) ((i16) &= ~((uint16)1 << (k)))
 #define CLEAR_BIT32(i32, k) ((i32) &= ~((uint32)1 << (k)))
 #define CLEAR_BIT64(i64, k) ((i64) &= ~((uint64)1 << (k)))
+
+#define GET_BIT8(i8, k)   (((i8)  >> (k)) & (bits8)1)
 #define GET_BIT16(i16, k) (((i16) >> (k)) & (uint16)1)
 #define GET_BIT32(i32, k) (((i32) >> (k)) & (uint32)1)
 #define GET_BIT64(i64, k) (((i64) >> (k)) & (uint64)1)

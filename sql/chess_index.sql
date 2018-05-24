@@ -5,7 +5,6 @@
 
 --\set client_min_messages=DEBUG5;
 
-
 /****************************************************************************
 -- side : white or black
  ****************************************************************************/
@@ -463,6 +462,15 @@ RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION heatmap(board)
 RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
+CREATE FUNCTION bitboard(board, cpiece)
+RETURNS bit(64) AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION bitboard_array(board, cpiece)
+RETURNS int[] AS $$
+    select string_to_array(bitboard($1, $2)::text, NULL)::int[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+
 CREATE FUNCTION piecesquares_to_board(piecesquare[])
 RETURNS board AS $$ 
     select piecesquares_to_board($1, 'w - -'::text)
@@ -475,6 +483,19 @@ RETURNS piecesquare[] AS $$
     select "_pieces"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 CREATE CAST (board as piecesquare[]) WITH FUNCTION pieces;
+
+CREATE OR REPLACE FUNCTION pieces_so(board) -- square order
+RETURNS piecesquare[] AS $$
+    select 
+        array_agg((p::text || s::text)::piecesquare)  
+    from 
+    (
+        select pieces::square s , pieces::cpiece p from 
+        (
+            select unnest(pieces($1)) pieces
+        ) tt order by s
+    ) ttt ;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE FUNCTION _attacks(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
@@ -489,6 +510,8 @@ CREATE OR REPLACE FUNCTION mobility(board)
 RETURNS piecesquare[] AS $$
     select "_mobility"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+
+
 
 /*---------------------------------------/
 /  ops                                   /
@@ -782,5 +805,12 @@ RETURNS tsquery AS $$
     )::tsquery
 
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION squares()
+RETURNS setof square AS $$
+     select (56 - (i/8)*8 + (i%8))::square  from generate_series(0, 63) as i;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+
 
 /*}}}*/
