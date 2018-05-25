@@ -33,6 +33,5 @@ fi
 
 psql -c"drop extension if exists chess_index cascade" >/dev/null
 psql -c"create extension chess_index" >/dev/null
-psql -f ./test/sql/setup.sql
 
-psql -f ./sql/cube.sql
+cd ../parser && make test

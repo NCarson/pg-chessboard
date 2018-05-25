@@ -416,6 +416,33 @@ RETURNS text[] AS $$
     select array_agg(pretty) from (select pretty(unnest($1))) t
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
+CREATE FUNCTION piecesquare_eq(piecesquare, piecesquare)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2eq';
+CREATE FUNCTION piecesquare_ne(piecesquare, piecesquare)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2ne';
+
+CREATE OPERATOR = (
+  LEFTARG = piecesquare,
+  RIGHTARG = piecesquare,
+  PROCEDURE = piecesquare_eq,
+  COMMUTATOR = '=',
+  NEGATOR = '<>',
+  RESTRICT = eqsel,
+  JOIN = eqjoinsel,
+  HASHES, MERGES
+);
+
+CREATE OPERATOR <> (
+  LEFTARG = piecesquare,
+  RIGHTARG = piecesquare,
+  PROCEDURE = piecesquare_ne,
+  COMMUTATOR = '<>',
+  NEGATOR = '=',
+  RESTRICT = neqsel,
+  JOIN = neqjoinsel
+);
+
+
 /*}}}*/
 /****************************************************************************
 -- board: displays as fen, holds position
