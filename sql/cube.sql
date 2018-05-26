@@ -1,5 +1,5 @@
 
-CREATE FUNCTION cube(board)
+CREATE or replace FUNCTION cube(board)
 RETURNS cube AS $$
     select (cube(
               bitboard_array($1, 'K') 
@@ -16,3 +16,15 @@ RETURNS cube AS $$
            || bitboard_array($1, 'p')
     )) 
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+
+create or replace function cube(piecesquare[]) 
+returns cube as $$
+    select cube(piecesquares_to_board($1))
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+create or replace function distances(piecesquare[]) 
+returns setof double precision as $$
+    select cube(piecesquares_to_board(keypieces)) <-> cube(piecesquares_to_board($1))
+    from position
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+

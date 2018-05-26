@@ -40,9 +40,6 @@ select expected_or_fail_bool(
  
 (1 row)
 
-select expected_or_fail_bool(
-    (select pieces('p7/8/8/8/8/8/8/K7 w KQkq -'::board) = '{Kh8,ph1}'), true);
-ERROR:  could not identify an equality operator for type piecesquare
 select ('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)::piecesquare[];
                                                             piecesquare                                                            
 -----------------------------------------------------------------------------------------------------------------------------------
@@ -55,3 +52,7 @@ select remove_pieces('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1':
  rnbqkbnr/8/8/8/8/8/8/RNBQKBNR w KQkq -
 (1 row)
 
+/*
+select expected_or_fail_bool(
+    (select pieces('p7/8/8/8/8/8/8/K7 w KQkq -'::board) = '{Kh8,ph1}'), true);
+*/

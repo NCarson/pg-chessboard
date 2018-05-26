@@ -393,7 +393,11 @@ CREATE TYPE piecesquare(
     ,OUTPUT         = piecesquare_out
     ,STORAGE        = PLAIN
     ,LIKE           = int2
+    ,INTERNALLENGTH = 2    
+	,ALIGNMENT      = int2  
+	,PASSEDBYVALUE         
 );
+
 
 CREATE CAST (piecesquare as int2) WITHOUT FUNCTION;
 CREATE CAST (int2 as piecesquare) WITHOUT FUNCTION;
@@ -420,6 +424,8 @@ CREATE FUNCTION piecesquare_eq(piecesquare, piecesquare)
 RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2eq';
 CREATE FUNCTION piecesquare_ne(piecesquare, piecesquare)
 RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2ne';
+CREATE FUNCTION hash_piecesquare(piecesquare)
+RETURNS integer LANGUAGE internal IMMUTABLE AS 'hashint2';
 
 CREATE OPERATOR = (
   LEFTARG = piecesquare,
@@ -442,6 +448,10 @@ CREATE OPERATOR <> (
   JOIN = neqjoinsel
 );
 
+CREATE OPERATOR CLASS hash_piecesquare_ops
+DEFAULT FOR TYPE piecesquare USING hash AS
+OPERATOR        1       = ,
+FUNCTION        1       hash_piecesquare(piecesquare);
 
 /*}}}*/
 /****************************************************************************
@@ -500,8 +510,11 @@ $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE FUNCTION piecesquares_to_board(piecesquare[])
 RETURNS board AS $$ 
-    select piecesquares_to_board($1, 'w - -'::text)
+    select piecesquares_to_board($1, 
+        'w - -'::text
+    )
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+
 
 CREATE FUNCTION _pieces(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
