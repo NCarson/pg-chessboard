@@ -808,44 +808,6 @@ RETURNS text AS $$
     select translate($1::text, 'KQRBNPkqrbnpwb', 'kqrbnpKQRBNPbw')
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION piece_string(piecesquare[])
-RETURNS text AS $$
-    select string_agg(t, ' ')
-    from  (
-        select  unnest($1)::text as t
-    ) tt
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-
-CREATE OR REPLACE FUNCTION piece_string_and(piecesquare[])
-RETURNS text AS $$
-    select string_agg(t, ' & ')
-    from  (
-        select  unnest($1)::text as t
-    ) tt
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-
-CREATE OR REPLACE FUNCTION to_tsvector(board)
-RETURNS tsvector AS $$
-    select 
-    (
-           piece_string_and(pieces($1)) || ' '
-        || piece_string_and(mobility($1)) || ' '
-        || piece_string_and(attacks($1))
-    )::tsvector
-
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-
-CREATE OR REPLACE FUNCTION to_tsquery(board)
-RETURNS tsquery AS $$
-    select 
-    (
-           piece_string_and(pieces($1)) || ' & '
-        || piece_string_and(mobility($1)) || ' & '
-        || piece_string_and(attacks($1))
-    )::tsquery
-
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-
 CREATE OR REPLACE FUNCTION squares()
 RETURNS setof square AS $$
      select (56 - (i/8)*8 + (i%8))::square  from generate_series(0, 63) as i;
