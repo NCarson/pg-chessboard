@@ -398,7 +398,6 @@ CREATE TYPE piecesquare(
 	,PASSEDBYVALUE         
 );
 
-
 CREATE CAST (piecesquare as int2) WITHOUT FUNCTION;
 CREATE CAST (int2 as piecesquare) WITHOUT FUNCTION;
 
@@ -424,6 +423,16 @@ CREATE FUNCTION piecesquare_eq(piecesquare, piecesquare)
 RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2eq';
 CREATE FUNCTION piecesquare_ne(piecesquare, piecesquare)
 RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2ne';
+CREATE FUNCTION piecesquare_lt(piecesquare, piecesquare)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2lt';
+CREATE FUNCTION piecesquare_le(piecesquare, piecesquare)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2le';
+CREATE FUNCTION piecesquare_gt(piecesquare, piecesquare)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2gt';
+CREATE FUNCTION piecesquare_ge(piecesquare, piecesquare)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2ge';
+CREATE FUNCTION piecesquare_cmp(piecesquare, piecesquare)
+RETURNS integer LANGUAGE internal IMMUTABLE AS 'btint2cmp';
 CREATE FUNCTION hash_piecesquare(piecesquare)
 RETURNS integer LANGUAGE internal IMMUTABLE AS 'hashint2';
 
@@ -447,6 +456,57 @@ CREATE OPERATOR <> (
   RESTRICT = neqsel,
   JOIN = neqjoinsel
 );
+
+CREATE OPERATOR < (
+  LEFTARG = piecesquare,
+  RIGHTARG = piecesquare,
+  PROCEDURE = piecesquare_lt,
+  COMMUTATOR = > ,
+  NEGATOR = >= ,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR <= (
+  LEFTARG = piecesquare,
+  RIGHTARG = piecesquare,
+  PROCEDURE = piecesquare_le,
+  COMMUTATOR = >= ,
+  NEGATOR = > ,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR > (
+  LEFTARG = piecesquare,
+  RIGHTARG = piecesquare,
+  PROCEDURE = piecesquare_gt,
+  COMMUTATOR = < ,
+  NEGATOR = <= ,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR >= (
+  LEFTARG = piecesquare,
+  RIGHTARG = piecesquare,
+  PROCEDURE = piecesquare_ge,
+  COMMUTATOR = <= ,
+  NEGATOR = < ,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR CLASS btree_piecesquare_ops
+DEFAULT FOR TYPE piecesquare USING btree
+AS
+        OPERATOR        1       <  ,
+        OPERATOR        2       <= ,
+        OPERATOR        3       =  ,
+        OPERATOR        4       >= ,
+        OPERATOR        5       >  ,
+        FUNCTION        1       piecesquare_cmp(piecesquare, piecesquare);
+
 
 CREATE OPERATOR CLASS hash_piecesquare_ops
 DEFAULT FOR TYPE piecesquare USING hash AS
@@ -503,8 +563,26 @@ CREATE FUNCTION bitboard(board, cpiece)
 RETURNS bit(64) AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION bitboard_array(board, cpiece)
-RETURNS int[] AS $$
-    select string_to_array(bitboard($1, $2)::text, NULL)::int[]
+RETURNS bit[] AS $$
+    select string_to_array(bitboard($1, $2)::text, NULL)::bit[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE or replace FUNCTION bitboard_array(board)
+RETURNS bit[] AS $$
+    select ((
+              bitboard_array($1, 'K') 
+           || bitboard_array($1, 'Q')
+           || bitboard_array($1, 'R') 
+           || bitboard_array($1, 'B')
+           || bitboard_array($1, 'N') 
+           || bitboard_array($1, 'P')
+           || bitboard_array($1, 'k') 
+           || bitboard_array($1, 'q')
+           || bitboard_array($1, 'r') 
+           || bitboard_array($1, 'b')
+           || bitboard_array($1, 'n') 
+           || bitboard_array($1, 'p')
+    )) 
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
@@ -524,13 +602,13 @@ RETURNS piecesquare[] AS $$
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 CREATE CAST (board as piecesquare[]) WITH FUNCTION pieces;
 
-CREATE OR REPLACE FUNCTION pieces_so(board) -- square order
+CREATE OR REPLACE FUNCTION pieces_so(board) -- piecesquare order
 RETURNS piecesquare[] AS $$
     select 
         array_agg((p::text || s::text)::piecesquare)  
     from 
     (
-        select pieces::square s , pieces::cpiece p from 
+        select pieces::piecesquare s , pieces::cpiece p from 
         (
             select unnest(pieces($1)) pieces
         ) tt order by s
