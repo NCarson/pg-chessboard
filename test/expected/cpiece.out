@@ -1,3 +1,99 @@
+select pretty('p'::cpiece);
+ pretty 
+--------
+ ♟
+(1 row)
+
+select pretty('n'::cpiece);
+ pretty 
+--------
+ ♞
+(1 row)
+
+select pretty('b'::cpiece);
+ pretty 
+--------
+ ♝
+(1 row)
+
+select pretty('r'::cpiece);
+ pretty 
+--------
+ ♜
+(1 row)
+
+select pretty('q'::cpiece);
+ pretty 
+--------
+ ♛
+(1 row)
+
+select pretty('k'::cpiece);
+ pretty 
+--------
+ ♚
+(1 row)
+
+select pretty('P'::cpiece);
+ pretty 
+--------
+ ♙
+(1 row)
+
+select pretty('N'::cpiece);
+ pretty 
+--------
+ ♘
+(1 row)
+
+select pretty('B'::cpiece);
+ pretty 
+--------
+ ♗
+(1 row)
+
+select pretty('R'::cpiece);
+ pretty 
+--------
+ ♖
+(1 row)
+
+select pretty('Q'::cpiece);
+ pretty 
+--------
+ ♕
+(1 row)
+
+select pretty('K'::cpiece);
+ pretty 
+--------
+ ♔
+(1 row)
+
+select expected_or_fail_bool('p'::piece  = 'p'::piece, true);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool('p'::piece != 'p'::piece, false);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool('p'::piece != 'K'::piece, true);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool('p'::piece  = 'K'::piece, false);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
 select expected_or_fail_bool(cpiece_value('P'::cpiece) =  1, true);
  expected_or_fail_bool 
 -----------------------

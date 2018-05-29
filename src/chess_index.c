@@ -132,7 +132,6 @@ unsigned short _pindex_in(char * str)
     //
     return result;
 }/*}}}*/
-
 /********************************************************
 * 		square
 ********************************************************/
@@ -215,6 +214,22 @@ piece_t _piece_type(const cpiece_t p)
         case BLACK_ROOK:    result=ROOK; break;
         case BLACK_QUEEN:   result=QUEEN; break;
         case BLACK_KING:    result=KING; break;
+        default:
+            CH_ERROR("bad cpiece_t: %i", p); break;
+    }
+    return result;
+}
+
+int _piece_value(const piece_t p) 
+{
+    char                result;
+    switch (p) {
+        case PAWN:    result= 1; break;
+        case KNIGHT:  result= 3; break;
+        case BISHOP:  result= 3; break;
+        case ROOK:    result= 5; break;
+        case QUEEN:   result= 9; break;
+        case KING:    result= 0; break;
         default:
             CH_ERROR("bad cpiece_t: %i", p); break;
     }

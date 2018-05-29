@@ -1,11 +1,13 @@
 
 set -e
 
-if [ -z "$PGDATABASE" ]
-then
-    (>&2 echo "please set the env var \$PGDATABASE for the db you want to install in. example... 'export PGDATABASE=chess'")
-    exit 1
-fi
+DB=chess_test
+
+#if [ -z "$PGDATABASE" ]
+#then
+#    (>&2 echo "please set the env var \$PGDATABASE for the db you want to install in. example... 'export PGDATABASE=chess'")
+#    exit 1
+#fi
 
 CHECK=1
 
@@ -31,7 +33,11 @@ if [[ "$CHECK" -eq 1 ]]; then
     make installcheck;
 fi
 
-psql -c"drop extension if exists chess_index cascade" >/dev/null
-psql -c"create extension chess_index" >/dev/null
+dropdb $DB
+createdb $DB
+psql -d$DB -c"drop extension if exists chess_index cascade" >/dev/null
+psql -d$DB -c"create extension chess_index" >/dev/null
+psql -d$DB -c"create extension cube" >/dev/null
+psql -d$DB -c"create extension smlar" >/dev/null
 
-cd ../games && make test
+cd ../games && make test DIREC="./data/test" 

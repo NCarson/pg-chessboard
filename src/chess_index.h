@@ -186,6 +186,7 @@ char            _square_in(char file, char rank);
 char            _adiagonal_in(char square);
 char            _diagonal_in(char square);
 
+int             _piece_value(const piece_t p);
 char            _cpiece_char(const cpiece_t p);
 int             _cpiece_value(const cpiece_t p) ;
 cpiece_t        _cpiece_type(const piece_t p, bool iswhite);

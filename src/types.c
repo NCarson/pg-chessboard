@@ -64,9 +64,14 @@ PG_FUNCTION_INFO_V1(piecesquare_cpiece);
 PG_FUNCTION_INFO_V1(piecesquare_square);
 PG_FUNCTION_INFO_V1(piecesquares_to_board);
 
+PG_FUNCTION_INFO_V1(piece_in);
+PG_FUNCTION_INFO_V1(piece_out);
+PG_FUNCTION_INFO_V1(piece_value);
+
 PG_FUNCTION_INFO_V1(cpiece_in);
 PG_FUNCTION_INFO_V1(cpiece_out);
 PG_FUNCTION_INFO_V1(cpiece_value);
+PG_FUNCTION_INFO_V1(cpiece_to_piece);
 
 PG_FUNCTION_INFO_V1(cfile_in);
 PG_FUNCTION_INFO_V1(cfile_out);
@@ -88,9 +93,46 @@ PG_FUNCTION_INFO_V1(pfilter_in);
 PG_FUNCTION_INFO_V1(pfilter_out);
 
 /*}}}*/
-
 /********************************************************
 * 		piece
+********************************************************/
+/*{{{*/
+
+Datum
+piece_in(PG_FUNCTION_ARGS)
+{
+	char        *str = PG_GETARG_CSTRING(0);
+
+	if (strlen(str) != 1)
+		BAD_TYPE_IN("piece", str);
+
+	PG_RETURN_CHAR(_piece_in(str[0]));
+}
+
+
+Datum
+piece_out(PG_FUNCTION_ARGS)
+{
+	piece_t         piece = PG_GETARG_CHAR(0);
+	char			*result = (char *) palloc(2);
+
+	result[0] = _piece_char(piece);
+	result[1] = '\0';
+
+	PG_RETURN_CSTRING(result);
+}
+
+Datum
+piece_value(PG_FUNCTION_ARGS)
+{
+	piece_t	    piece = PG_GETARG_CHAR(0);
+	PG_RETURN_INT32(_piece_value(piece));
+}
+
+/*}}}*/
+
+/********************************************************
+* 		cpiece
 ********************************************************/
 /*{{{*/
 
@@ -100,7 +142,7 @@ cpiece_in(PG_FUNCTION_ARGS)
 	char        *str = PG_GETARG_CSTRING(0);
 
 	if (strlen(str) != 1)
-		BAD_TYPE_IN("piece", str);
+		BAD_TYPE_IN("cpiece", str);
 
 	PG_RETURN_CHAR(_cpiece_in(str[0]));
 }
@@ -116,6 +158,18 @@ cpiece_out(PG_FUNCTION_ARGS)
 	result[1] = '\0';
 
 	PG_RETURN_CSTRING(result);
+}
+
+Datum
+cpiece_to_piece(PG_FUNCTION_ARGS)
+{
+	cpiece_t        piece = PG_GETARG_CHAR(0);
+    piece_t         result;
+
+    result = _piece_type(piece);
+
+
+	PG_RETURN_CHAR(result);
 }
 
 Datum
@@ -302,7 +356,7 @@ Datum
 diagonal_in(PG_FUNCTION_ARGS)
 {
     char 			*str = PG_GETARG_CSTRING(0);
-    if (strlen(str) != 2)
+    if (strlen(str) != 3)
         BAD_TYPE_IN("diagonal", str); 
 
     PG_RETURN_CHAR(_diagonal_in(_square_in(str[0],str[1])));

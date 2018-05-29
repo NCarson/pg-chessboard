@@ -293,8 +293,77 @@ CREATE OPERATOR CLASS hash_square_ops
         FUNCTION        1       hash_square(square);
 
 /*}}}*/
+
 /****************************************************************************
 -- piece
+****************************************************************************/
+/*{{{*/
+CREATE FUNCTION piece_in(cstring)
+RETURNS piece AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION piece_out(piece)
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE piece(
+    INPUT          = piece_in,
+    OUTPUT         = piece_out,
+    LIKE           = char,
+    INTERNALLENGTH = 1,    
+	ALIGNMENT      = char, 
+	STORAGE        = PLAIN,
+	PASSEDBYVALUE         
+);
+
+CREATE FUNCTION value(piece)
+RETURNS int AS '$libdir/chess_index', 'piece_value' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION pretty(piece)
+RETURNS text AS $$
+    select translate($1::text, 'KQRBNP', U&'\265A\265B\265C\265D\265E\265F')
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+
+-----------------------------------------------------------------------------
+-- ops
+-----------------------------------------------------------------------------
+
+CREATE FUNCTION piece_eq(piece, piece)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'chareq';
+CREATE FUNCTION piece_ne(piece, piece)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'charne';
+CREATE FUNCTION hash_square(piece)
+RETURNS integer LANGUAGE internal IMMUTABLE AS 'hashchar';
+
+CREATE OPERATOR = (
+    LEFTARG = piece,
+    RIGHTARG = piece,
+    PROCEDURE = piece_eq,
+    COMMUTATOR = '=',
+    NEGATOR = '<>',
+    RESTRICT = eqsel,
+    JOIN = eqjoinsel,
+    HASHES, MERGES
+);
+
+CREATE OPERATOR <> (
+    LEFTARG = piece,
+    RIGHTARG = piece,
+    PROCEDURE = piece_ne,
+    COMMUTATOR = '<>',
+    NEGATOR = '=',
+    RESTRICT = neqsel,
+    JOIN = neqjoinsel
+);
+
+CREATE OPERATOR CLASS hash_piece_ops
+DEFAULT FOR TYPE piece USING hash AS
+OPERATOR        1       = ,
+FUNCTION        1       hash_square(piece);
+
+
+/*}}}*/
+/****************************************************************************
+-- cpiece
 ****************************************************************************/
 /*{{{*/
 CREATE FUNCTION cpiece_in(cstring)
@@ -316,9 +385,13 @@ CREATE TYPE cpiece(
 CREATE FUNCTION cpiece_value(cpiece)
 RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
+CREATE FUNCTION piece(cpiece)
+RETURNS piece AS '$libdir/chess_index', 'cpiece_to_piece' LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (cpiece as piece) WITH FUNCTION piece;
+
 CREATE OR REPLACE FUNCTION pretty(cpiece)
 RETURNS text AS $$
-    select translate($1::text, 'kqrbnpKQRBNP', U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F')
+    select translate($1::text, 'KQRBNPkqrbnp', U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F')
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
@@ -354,7 +427,7 @@ CREATE OPERATOR <> (
     JOIN = neqjoinsel
 );
 
-CREATE OPERATOR CLASS hash_piece_ops
+CREATE OPERATOR CLASS hash_cpiece_ops
 DEFAULT FOR TYPE cpiece USING hash AS
 OPERATOR        1       = ,
 FUNCTION        1       hash_square(cpiece);

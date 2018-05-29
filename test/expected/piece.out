@@ -1,0 +1,102 @@
+select 'p'::cpiece::piece::text = 'P';
+ ?column? 
+----------
+ t
+(1 row)
+
+select pretty('p'::piece);
+ pretty 
+--------
+ ♟
+(1 row)
+
+select pretty('n'::piece);
+ pretty 
+--------
+ ♞
+(1 row)
+
+select pretty('b'::piece);
+ pretty 
+--------
+ ♝
+(1 row)
+
+select pretty('r'::piece);
+ pretty 
+--------
+ ♜
+(1 row)
+
+select pretty('q'::piece);
+ pretty 
+--------
+ ♛
+(1 row)
+
+select pretty('k'::piece);
+ pretty 
+--------
+ ♚
+(1 row)
+
+select expected_or_fail_bool('p'::piece = 'P'::piece, true);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool('p'::piece != 'P'::piece, false);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool('p'::piece != 'K'::piece, true);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool('p'::piece = 'K'::piece, false);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool(value('P'::piece) =  1, true);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool(value('N'::piece) =  3, true);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool(value('B'::piece) =  3, true);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool(value('R'::piece) =  5, true);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool(value('Q'::piece) =  9, true);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
+select expected_or_fail_bool(value('K'::piece) =  0, true);
+ expected_or_fail_bool 
+-----------------------
+ 
+(1 row)
+
