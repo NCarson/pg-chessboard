@@ -842,6 +842,43 @@ LANGUAGE C IMMUTABLE STRICT;
 CREATE CAST (diagonal AS int4) WITH FUNCTION char_to_int(diagonal);
 /*}}}*/
 /****************************************************************************
+-- adiagonal
+ ****************************************************************************/
+/*{{{*/
+CREATE FUNCTION adiagonal_in(cstring)
+RETURNS adiagonal
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION adiagonal_out(adiagonal)
+RETURNS cstring
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE adiagonal(
+    INPUT          = adiagonal_in,
+    OUTPUT         = adiagonal_out,
+
+    INTERNALLENGTH = 1,     -- use 4 bytes to store data
+    ALIGNMENT      = char,  -- align to 4 bytes
+    STORAGE        = PLAIN, -- always store data inline uncompressed (not toasted)
+    PASSEDBYVALUE           -- pass data by value rather than by reference
+);
+
+
+CREATE FUNCTION square_to_adiagonal(square)
+RETURNS adiagonal
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (square AS adiagonal) WITH FUNCTION square_to_adiagonal(square);
+
+CREATE FUNCTION char_to_int(adiagonal)
+RETURNS int4
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (adiagonal AS int4) WITH FUNCTION char_to_int(adiagonal);
+/*}}}*/
+/****************************************************************************
 -- sql functions
  ****************************************************************************/
 /*{{{*/
