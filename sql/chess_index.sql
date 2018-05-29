@@ -640,7 +640,7 @@ RETURNS bit[] AS $$
     select string_to_array(bitboard($1, $2)::text, NULL)::bit[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
-CREATE or replace FUNCTION bitboard_array(board)
+CREATE or replace FUNCTION bitboard_vector(board)
 RETURNS bit[] AS $$
     select ((
               bitboard_array($1, 'K') 
@@ -669,11 +669,48 @@ $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE FUNCTION _pieces(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION _pieces(board, side)
+RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION _pieces_cpiece(board, cpiece)
+RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION _pieces_piece(board, piece)
+RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION _pieces_squares(board, square[])
+RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pieces(board, square)
+RETURNS piecesquare AS '$libdir/chess_index', '_pieces_square' LANGUAGE C IMMUTABLE STRICT;
+
 CREATE OR REPLACE FUNCTION pieces(board)
 RETURNS piecesquare[] AS $$
     select "_pieces"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
-CREATE CAST (board as piecesquare[]) WITH FUNCTION pieces;
+
+CREATE OR REPLACE FUNCTION pieces(board, side)
+RETURNS piecesquare[] AS $$
+    select "_pieces"($1, $2)::piecesquare[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION pieces(board, cpiece)
+RETURNS piecesquare[] AS $$
+    select "_pieces_cpiece"($1, $2)::piecesquare[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION pieces(board, piece)
+RETURNS piecesquare[] AS $$
+    select "_pieces_piece"($1, $2)::piecesquare[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION pieces(board, square[])
+RETURNS piecesquare[] AS $$
+    select "_pieces_squares"($1, $2)::piecesquare[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE CAST (board as piecesquare[]) WITH FUNCTION pieces(board);
 
 CREATE OR REPLACE FUNCTION pieces_so(board) -- piecesquare order
 RETURNS piecesquare[] AS $$

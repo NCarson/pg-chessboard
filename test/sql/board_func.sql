@@ -18,12 +18,31 @@ select expected_or_fail_bool(
 select expected_or_fail_bool(
     (select pieceindex('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board, 'b') = 'QRRBBNNPPPPPPPP'), true);
 
-
 select ('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)::piecesquare[];
 
 select remove_pieces('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board, 'p');
 
-/*
 select expected_or_fail_bool(
-    (select pieces('p7/8/8/8/8/8/8/K7 w KQkq -'::board) = '{Kh8,ph1}'), true);
-*/
+    (select pieces('p7/8/8/8/8/8/8/K7 w KQkq -'::board) = '{pa8,Ka1}'::piecesquare[]), true);
+
+
+select expected_or_fail_bool(
+    (select pieces('pp6/8/8/8/8/8/8/K7 w KQkq -'::board, 'p'::cpiece) =  '{pa8,pb8}'::piecesquare[]), true);
+
+select expected_or_fail_bool(
+    (select pieces('pp6/8/8/8/8/8/8/P7 w KQkq -'::board, 'p'::cpiece) =  '{pa8,pb8}'::piecesquare[]), true);
+
+select expected_or_fail_bool(
+    (select pieces('pp6/8/8/8/8/8/8/P7 w KQkq -'::board, 'p'::piece) =  '{pa8,pb8,Pa1}'::piecesquare[]), true);
+
+select expected_or_fail_bool(
+    (select pieces('pp6/8/8/8/8/8/8/P7 w KQkq -'::board, 'w'::side) =  '{Pa1}'::piecesquare[]), true);
+
+select expected_or_fail_bool(
+    (select pieces('pp6/8/8/8/8/8/8/P7 w KQkq -'::board, 'a1'::square) =  'Pa1'::piecesquare), true);
+
+select expected_or_fail_bool(
+    (select pieces('pp6/8/8/8/8/8/8/P7 w KQkq -'::board, '{a1,a2}'::square[]) =  '{Pa1}'::piecesquare[]), true);
+
+select expected_or_fail_bool(
+    (select bitboard('pp6/8/8/8/8/8/8/7P w KQkq -'::board, 'P'::cpiece) = 1::bit(64)), true);

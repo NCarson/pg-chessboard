@@ -34,6 +34,10 @@ PG_FUNCTION_INFO_V1(pcount);
 PG_FUNCTION_INFO_V1(side);
 PG_FUNCTION_INFO_V1(pieceindex);
 PG_FUNCTION_INFO_V1(_pieces);
+PG_FUNCTION_INFO_V1(_pieces_cpiece);
+PG_FUNCTION_INFO_V1(_pieces_piece);
+PG_FUNCTION_INFO_V1(_pieces_square);
+PG_FUNCTION_INFO_V1(_pieces_squares);
 PG_FUNCTION_INFO_V1(board_to_fen);
 PG_FUNCTION_INFO_V1(remove_pieces);
 PG_FUNCTION_INFO_V1(heatmap);
@@ -580,15 +584,146 @@ _pieces(PG_FUNCTION_ARGS)
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
     uint16			*pieces= _board_pieces(b);
     ArrayType       *a;
-	Datum *d 		= (Datum *) palloc(sizeof(Datum) * b->pcount);
+	Datum           *d = (Datum *) palloc(sizeof(Datum) * b->pcount);
+    side_t          side = -1;
+    size_t          n=0;
+    uint16          ps;
+
+    if (PG_NARGS() > 1)
+        side = PG_GETARG_CHAR(1);
 
 	for (int i = 0; i<b->pcount; i++) { 
-		d[i] = UInt16GetDatum(pieces[i]);
-        //CH_NOTICE("i:%i, piecesquare: %i", i,d[i]);
+        ps = pieces[i];
+        if (side == -1) {
+            d[n++] = UInt16GetDatum(ps);
+        } else if (side == WHITE || side == BLACK) {
+            if (_cpiece_side(GET_PS_PIECE(ps)) == side) {
+                d[n++] = UInt16GetDatum(ps);
+            }
+        } else {
+            CH_ERROR("internal error with side_t");
+        }
 	}
-	a = construct_array(d, b->pcount, INT2OID, sizeof(uint16), true, 'c');
+	a = construct_array(d, n, INT2OID, sizeof(uint16), true, 'c');
 
     PG_RETURN_ARRAYTYPE_P(a);
+}
+
+Datum
+_pieces_cpiece(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    uint16			*pieces= _board_pieces(b);
+    ArrayType       *a;
+	Datum           *d = (Datum *) palloc(sizeof(Datum) * b->pcount);
+    size_t          n=0;
+    uint16          ps;
+    cpiece_t        piece = PG_GETARG_CHAR(1);
+
+	for (int i = 0; i < b->pcount; i++) { 
+        ps = pieces[i];
+        if (GET_PS_PIECE(ps) == piece) {
+            d[n++] = UInt16GetDatum(ps);
+        }
+	}
+	a = construct_array(d, n, INT2OID, sizeof(uint16), true, 'c');
+
+    PG_RETURN_ARRAYTYPE_P(a);
+}
+
+Datum
+_pieces_piece(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    uint16			*pieces= _board_pieces(b);
+    ArrayType       *a;
+	Datum           *d = (Datum *) palloc(sizeof(Datum) * b->pcount);
+    size_t          n=0;
+    uint16          ps;
+    piece_t        piece = PG_GETARG_CHAR(1);
+
+	for (int i = 0; i < b->pcount; i++) { 
+        ps = pieces[i];
+        if (_piece_type(GET_PS_PIECE(ps)) == piece) {
+            d[n++] = UInt16GetDatum(ps);
+        }
+	}
+	a = construct_array(d, n, INT2OID, sizeof(uint16), true, 'c');
+
+    PG_RETURN_ARRAYTYPE_P(a);
+}
+
+Datum
+_pieces_square(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    uint16			*pieces= _board_pieces(b);
+    uint16          ps;
+    char            square = PG_GETARG_CHAR(1);
+    uint16          result = NO_CPIECE;
+
+	for (int i = 0; i < b->pcount; i++) { 
+        ps = pieces[i];
+        if (GET_PS_SQUARE(ps) == square) {
+            result = UInt16GetDatum(ps);
+            break;
+        }
+	}
+    if (result == NO_CPIECE)
+        PG_RETURN_NULL();
+    else
+        PG_RETURN_UINT16(result);
+
+}
+
+Datum 
+_pieces_squares(PG_FUNCTION_ARGS)
+{
+    //https://github.com/pjungwir/aggs_for_arrays/blob/master/array_to_max.c
+	ArrayType 			*vals;              // Our arguments:
+	Oid 				valsType;           // The array element type:
+	int16 				valsTypeWidth;      // The array element type widths for our input array:
+	bool 				valsTypeByValue;    // The array element type "is passed by value" flags (not really used):
+	char 				valsTypeAlignmentCode; // The array element type alignment codes (not really used):
+	Datum 				*valsContent;       // The array contents, as PostgreSQL "Datum" objects:
+	bool 				*valsNullFlags;     // List of "is null" flags for the array contents:
+	int 				valsLength;         // The size of the input array:
+
+    ArrayType       *a;
+    const Board         *b = (Board *) PG_GETARG_POINTER(0);
+	Datum               *d = (Datum *) palloc(sizeof(Datum) * b->pcount);
+    uint16			    *pieces= _board_pieces(b);
+    size_t               n=0;
+    uint16               ps;
+    char                 square;
+
+	if (PG_ARGISNULL(0)) { ereport(ERROR, (errmsg("Null arrays not accepted"))); } 
+	vals = PG_GETARG_ARRAYTYPE_P(1);
+	if (ARR_NDIM(vals) == 0) { PG_RETURN_NULL(); }
+	if (ARR_NDIM(vals) > 1) { ereport(ERROR, (errmsg("One-dimesional arrays are required"))); }
+
+	// Determine the array element types.
+	valsType = ARR_ELEMTYPE(vals);
+	valsLength = (ARR_DIMS(vals))[0];
+	get_typlenbyvalalign(valsType, &valsTypeWidth, &valsTypeByValue, &valsTypeAlignmentCode);
+	// Extract the array contents (as Datum objects).
+	deconstruct_array(vals, valsType, valsTypeWidth, valsTypeByValue, valsTypeAlignmentCode, &valsContent, &valsNullFlags, &valsLength);
+
+	for (int i = 0; i < valsLength; i++) {
+		if (valsNullFlags[i]) continue;
+        square = DatumGetChar(valsContent[i]);
+
+        for (int j = 0; j < b->pcount; j++) { 
+            ps = pieces[j];
+            if (GET_PS_SQUARE(ps) == square) {
+                d[n++] = UInt16GetDatum(ps);
+            }
+        }
+    }
+	a = construct_array(d, n, INT2OID, sizeof(uint16), true, 'c');
+
+    PG_RETURN_ARRAYTYPE_P(a);
+
 }
 
 Datum
