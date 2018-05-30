@@ -29,7 +29,7 @@ select expected_or_fail_bool(
 
 select ('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)::piecesquare[];
 
-select remove_pieces('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board, 'p');
+select pfilter('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board, 'p');
 
 select expected_or_fail_bool(
     (select pieces('p7/8/8/8/8/8/8/K7 w KQkq -'::board) = '{pa8,Ka1}'::piecesquare[]), true);

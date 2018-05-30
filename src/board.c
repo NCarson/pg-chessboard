@@ -49,7 +49,9 @@ PG_FUNCTION_INFO_V1(heatmap);
 PG_FUNCTION_INFO_V1(_attacks);
 PG_FUNCTION_INFO_V1(_mobility);
 PG_FUNCTION_INFO_V1(score);
-PG_FUNCTION_INFO_V1(bitboard);/*}}}*/
+PG_FUNCTION_INFO_V1(bitboard);
+PG_FUNCTION_INFO_V1(int_array);
+/*}}}*/
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
 #define SIZEOF_BOARD(k) (sizeof(Board) + SIZEOF_PIECES(k))
@@ -945,6 +947,31 @@ bitboard(PG_FUNCTION_ARGS)
     result->bit_len = SQUARE_MAX;
 
     PG_RETURN_VARBIT_P(result);
+}
+
+Datum
+int_array(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    ArrayType       *a;
+	Datum           *d = (Datum *) palloc(sizeof(Datum) * SQUARE_MAX);
+    cpiece_t        piece;
+
+	for (int i=SQUARE_MAX-1, k=0; i>=0; i--)
+	{
+		if (CHECK_BIT(b->board, i)) 
+        {
+            piece = GET_PIECE(b->pieces, k);
+            k++;
+            d[i] = Int32GetDatum(piece);
+        }
+        else
+            d[i] = 0;
+	}
+
+	a = construct_array(d, SQUARE_MAX, INT4OID, sizeof(int32), true, 'i');
+    pfree(d);
+    PG_RETURN_ARRAYTYPE_P(a);
 }
 
 /*}}}*/

@@ -638,8 +638,8 @@ $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE CAST (piecesquare[] as board) WITH FUNCTION board(piecesquare[]);
 
-CREATE FUNCTION remove_pieces(board, pfilter)
-RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION pfilter(board, pfilter)
+RETURNS board AS '$libdir/chess_index', 'remove_pieces' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION heatmap(board)
 RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
@@ -724,6 +724,8 @@ RETURNS piecesquare[] AS $$
     select "_mobility"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
+CREATE FUNCTION int_array(board)
+RETURNS int[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 
 /*---------------------------------------/
