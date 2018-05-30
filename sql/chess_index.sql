@@ -382,8 +382,8 @@ CREATE TYPE cpiece(
 	PASSEDBYVALUE         
 );
 
-CREATE FUNCTION cpiece_value(cpiece)
-RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION value(cpiece)
+RETURNS int AS '$libdir/chess_index', 'cpiece_value' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION piece(cpiece)
 RETURNS piece AS '$libdir/chess_index', 'cpiece_to_piece' LANGUAGE C IMMUTABLE STRICT;
@@ -474,13 +474,13 @@ CREATE TYPE piecesquare(
 CREATE CAST (piecesquare as int2) WITHOUT FUNCTION;
 CREATE CAST (int2 as piecesquare) WITHOUT FUNCTION;
 
-CREATE FUNCTION piecesquare_square(piecesquare)
-RETURNS square AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (piecesquare as square) WITH FUNCTION piecesquare_square;
+CREATE FUNCTION square(piecesquare)
+RETURNS square AS '$libdir/chess_index', 'piecesquare_square' LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (piecesquare as square) WITH FUNCTION square(piecesquare);
 
-CREATE FUNCTION piecesquare_cpiece(piecesquare)
-RETURNS cpiece AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (piecesquare as cpiece) WITH FUNCTION piecesquare_cpiece;
+CREATE FUNCTION cpiece(piecesquare)
+RETURNS cpiece AS '$libdir/chess_index', 'piecesquare_cpiece' LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (piecesquare as cpiece) WITH FUNCTION cpiece(piecesquare);
 
 CREATE OR REPLACE FUNCTION pretty(piecesquare)
 RETURNS text AS $$
@@ -628,8 +628,15 @@ RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION pieceindex(board, side)
 RETURNS pindex AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
-CREATE FUNCTION piecesquares_to_board(piecesquare[], text)
-RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION board(piecesquare[], text)
+RETURNS board AS '$libdir/chess_index', 'piecesquares_to_board' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION board(piecesquare[])
+RETURNS board AS $$ 
+    SELECT board($1, 'w - -'::text)
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE CAST (piecesquare[] as board) WITH FUNCTION board(piecesquare[]);
 
 CREATE FUNCTION remove_pieces(board, pfilter)
 RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
@@ -644,14 +651,6 @@ CREATE FUNCTION bitboard_array(board, cpiece)
 RETURNS bit[] AS $$
     select string_to_array(bitboard($1, $2)::text, NULL)::bit[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
-
-CREATE FUNCTION piecesquares_to_board(piecesquare[])
-RETURNS board AS $$ 
-    select piecesquares_to_board($1, 
-        'w - -'::text
-    )
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-
 
 CREATE FUNCTION _pieces(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
