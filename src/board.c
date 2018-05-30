@@ -14,7 +14,10 @@
  *
  * This ended up not using the king and en passant tricks for code simplicity
  */
-
+/*-------------------------------------------------------
+ -      function info
+ -------------------------------------------------------*/
+/*{{{*/
 PG_FUNCTION_INFO_V1(board_in);
 PG_FUNCTION_INFO_V1(board_out);
 
@@ -31,6 +34,8 @@ PG_FUNCTION_INFO_V1(board_hash);
 // functions
 PG_FUNCTION_INFO_V1(footer);
 PG_FUNCTION_INFO_V1(pcount);
+PG_FUNCTION_INFO_V1(pcount_piece);
+PG_FUNCTION_INFO_V1(pcount_cpiece);
 PG_FUNCTION_INFO_V1(side);
 PG_FUNCTION_INFO_V1(pieceindex);
 PG_FUNCTION_INFO_V1(_pieces);
@@ -44,7 +49,7 @@ PG_FUNCTION_INFO_V1(heatmap);
 PG_FUNCTION_INFO_V1(_attacks);
 PG_FUNCTION_INFO_V1(_mobility);
 PG_FUNCTION_INFO_V1(score);
-PG_FUNCTION_INFO_V1(bitboard);
+PG_FUNCTION_INFO_V1(bitboard);/*}}}*/
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
 #define SIZEOF_BOARD(k) (sizeof(Board) + SIZEOF_PIECES(k))
@@ -559,7 +564,45 @@ Datum
 pcount(PG_FUNCTION_ARGS)
 {
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
-    PG_RETURN_CSTRING(b->pcount);
+    PG_RETURN_INT16(b->pcount);
+}
+
+Datum
+pcount_piece(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    const piece_t   piece = PG_GETARG_CHAR(1);
+    int             result=0;
+    uint16	        *pieces= _board_pieces(b);
+    uint16          ps;
+
+	for (int i = 0; i < b->pcount; i++) { 
+        ps = pieces[i];
+        if (_piece_type(GET_PS_PIECE(ps)) == piece) {
+            result++;
+        }
+	}
+    pfree(pieces);
+    PG_RETURN_INT16(result);
+}
+
+Datum
+pcount_cpiece(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    cpiece_t        piece = PG_GETARG_CHAR(1);
+    int             result=0;
+    uint16	        *pieces= _board_pieces(b);
+    uint16          ps;
+
+	for (int i = 0; i < b->pcount; i++) { 
+        ps = pieces[i];
+        if (GET_PS_PIECE(ps) == piece) {
+            result++;
+        }
+	}
+    pfree(pieces);
+    PG_RETURN_INT16(result);
 }
 
 Datum

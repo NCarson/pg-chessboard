@@ -194,10 +194,11 @@ CREATE TYPE square(
 
 CREATE CAST ("char" AS square) WITHOUT FUNCTION;
 CREATE CAST (square AS "char") WITHOUT FUNCTION;
-CREATE FUNCTION int_to_square(int) RETURNS square AS $$ select $1::"char"::square $$ LANGUAGE SQL IMMUTABLE STRICT;
-CREATE FUNCTION square_to_int(square) RETURNS int AS $$ select $1::"char"::int $$ LANGUAGE SQL IMMUTABLE STRICT;
-CREATE CAST (int AS square) WITH FUNCTION int_to_square(int);
-CREATE CAST (square AS int) WITH FUNCTION square_to_int(square);
+CREATE FUNCTION square(int) RETURNS square AS $$ SELECT $1::"char"::square $$ LANGUAGE SQL IMMUTABLE STRICT;
+CREATE FUNCTION "int"(square) RETURNS int AS $$ SELECT $1::"char"::int $$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE CAST (int AS square) WITH FUNCTION square(int);
+CREATE CAST (square AS int) WITH FUNCTION "int"(square);
 
 CREATE FUNCTION square_eq(square, square)
 RETURNS boolean LANGUAGE internal IMMUTABLE as 'chareq';
@@ -293,7 +294,6 @@ CREATE OPERATOR CLASS hash_square_ops
         FUNCTION        1       hash_square(square);
 
 /*}}}*/
-
 /****************************************************************************
 -- piece
 ****************************************************************************/
@@ -603,7 +603,6 @@ CREATE TYPE board(
     STORAGE        = PLAIN
 );
 
-
 /*---------------------------------------/
 /  functions                             /
 /---------------------------------------*/
@@ -613,6 +612,12 @@ RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION pcount(board)
 RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pcount(board, piece)
+RETURNS int AS '$libdir/chess_index', 'pcount_piece' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pcount(board, cpiece)
+RETURNS int AS '$libdir/chess_index', 'pcount_cpiece' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION side(board)
 RETURNS side AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
@@ -639,25 +644,6 @@ CREATE FUNCTION bitboard_array(board, cpiece)
 RETURNS bit[] AS $$
     select string_to_array(bitboard($1, $2)::text, NULL)::bit[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
-
-CREATE or replace FUNCTION bitboard_vector(board)
-RETURNS bit[] AS $$
-    select ((
-              bitboard_array($1, 'K') 
-           || bitboard_array($1, 'Q')
-           || bitboard_array($1, 'R') 
-           || bitboard_array($1, 'B')
-           || bitboard_array($1, 'N') 
-           || bitboard_array($1, 'P')
-           || bitboard_array($1, 'k') 
-           || bitboard_array($1, 'q')
-           || bitboard_array($1, 'r') 
-           || bitboard_array($1, 'b')
-           || bitboard_array($1, 'n') 
-           || bitboard_array($1, 'p')
-    )) 
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-
 
 CREATE FUNCTION piecesquares_to_board(piecesquare[])
 RETURNS board AS $$ 
@@ -1038,6 +1024,45 @@ RETURNS setof square AS $$
      select (56 - (i/8)*8 + (i%8))::square  from generate_series(0, 63) as i;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
+
+CREATE OR REPLACE FUNCTION white(piece)
+RETURNS cpiece AS
+$$
+    SELECT upper($1::piece::text)::cpiece;
+
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION white(piece[])
+RETURNS cpiece[] AS
+$$
+    select array_agg(white) from 
+    (
+        select white(unnest) from (select unnest($1))t 
+    )tt
+
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION black(piece)
+RETURNS cpiece AS
+$$
+    SELECT lower($1::piece::text)::cpiece;
+
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION black(piece[])
+RETURNS cpiece[] AS
+$$
+    select array_agg(black) from 
+    (
+        select black(unnest) from (select unnest($1))t 
+    )tt
+
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION bitarray(bit(64))
+RETURNS bit[] AS $$
+    select string_to_array(($1)::text, NULL)::bit[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
 /*}}}*/
