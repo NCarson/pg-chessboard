@@ -1,0 +1,4 @@
+
+- pfilter should return empty board
+- cpiece needs side function
+- test empty boards: select pieces('8/8/8/8/8/8/8/8 w - - -'::board);

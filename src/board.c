@@ -171,9 +171,6 @@ static char *_board_pieceindex(const Board * b, side_t go)/*{{{*/
     cpiece_t            subject, target;
     const cpiece_t       *pieces = go==WHITE ? WHITE_PIECES : BLACK_PIECES;
 
-    if (b->pcount <=0)
-        CH_ERROR("board has no pieces");
-
     for (i=0; i<PIECE_INDEX_MAX; i++) {
         n = 0;
         target = pieces[i];
@@ -214,7 +211,7 @@ static uint16 *_board_pieces(const Board * b)/*{{{*/
     //debug_bitboard(b->board);
     //debug_board(board);
     if (b->pcount <=0)
-        CH_ERROR("board has no pieces");
+        return result;
 
     for (int i=0; i<SQUARE_MAX; i++) {
         if (board[i] != NO_CPIECE) {
