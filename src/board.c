@@ -957,7 +957,7 @@ int_array(PG_FUNCTION_ARGS)
 	Datum           *d = (Datum *) palloc(sizeof(Datum) * SQUARE_MAX);
     cpiece_t        piece;
 
-	for (int i=SQUARE_MAX-1, k=0; i>=0; i--)
+	for (int i=0, k=0; i<SQUARE_MAX; i++)
 	{
 		if (CHECK_BIT(b->board, i)) 
         {

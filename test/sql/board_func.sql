@@ -54,3 +54,8 @@ select expected_or_fail_bool(
 
 select expected_or_fail_bool(
     (select bitboard('pp6/8/8/8/8/8/8/7P w KQkq -'::board, 'P'::cpiece) = 1::bit(64)), true);
+
+select expected_or_fail_bool(
+    (select int_array('p7/8/8/8/8/8/8/7P w KQkq -'::board) =
+     '{7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}'::INT[]), TRUE);
+
