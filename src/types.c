@@ -72,6 +72,7 @@ PG_FUNCTION_INFO_V1(cpiece_in);
 PG_FUNCTION_INFO_V1(cpiece_out);
 PG_FUNCTION_INFO_V1(cpiece_value);
 PG_FUNCTION_INFO_V1(cpiece_to_piece);
+PG_FUNCTION_INFO_V1(cpiece_side);
 
 PG_FUNCTION_INFO_V1(cfile_in);
 PG_FUNCTION_INFO_V1(cfile_out);
@@ -177,6 +178,12 @@ cpiece_value(PG_FUNCTION_ARGS)
 {
 	cpiece_t	    piece = PG_GETARG_CHAR(0);
 	PG_RETURN_INT32(_cpiece_value(piece));
+}
+
+Datum
+cpiece_side(PG_FUNCTION_ARGS)
+{
+    PG_RETURN_CHAR(_cpiece_side(PG_GETARG_CHAR(0)));
 }
 
 /*}}}*/

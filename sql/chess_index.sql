@@ -385,6 +385,9 @@ CREATE TYPE cpiece(
 CREATE FUNCTION value(cpiece)
 RETURNS int AS '$libdir/chess_index', 'cpiece_value' LANGUAGE C IMMUTABLE STRICT;
 
+CREATE FUNCTION side(cpiece)
+RETURNS side AS '$libdir/chess_index', 'cpiece_side' LANGUAGE C IMMUTABLE STRICT;
+
 CREATE FUNCTION piece(cpiece)
 RETURNS piece AS '$libdir/chess_index', 'cpiece_to_piece' LANGUAGE C IMMUTABLE STRICT;
 CREATE CAST (cpiece as piece) WITH FUNCTION piece;
@@ -620,7 +623,7 @@ CREATE FUNCTION pcount(board, cpiece)
 RETURNS int AS '$libdir/chess_index', 'pcount_cpiece' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION side(board)
-RETURNS side AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+RETURNS side AS '$libdir/chess_index', 'board_side' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION score(board)
 RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;

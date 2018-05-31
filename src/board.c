@@ -36,7 +36,7 @@ PG_FUNCTION_INFO_V1(footer);
 PG_FUNCTION_INFO_V1(pcount);
 PG_FUNCTION_INFO_V1(pcount_piece);
 PG_FUNCTION_INFO_V1(pcount_cpiece);
-PG_FUNCTION_INFO_V1(side);
+PG_FUNCTION_INFO_V1(board_side);
 PG_FUNCTION_INFO_V1(pieceindex);
 PG_FUNCTION_INFO_V1(_pieces);
 PG_FUNCTION_INFO_V1(_pieces_cpiece);
@@ -605,7 +605,7 @@ pcount_cpiece(PG_FUNCTION_ARGS)
 }
 
 Datum
-side(PG_FUNCTION_ARGS)
+board_side(PG_FUNCTION_ARGS)
 {
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
     PG_RETURN_CHAR(b->whitesgo ? WHITE : BLACK);
@@ -807,9 +807,6 @@ remove_pieces(PG_FUNCTION_ARGS)
             }
         }
     }
-
-    if (b->pcount - n <= 0)
-        PG_RETURN_NULL();
 
     INIT_BOARD(result, b->pcount - n);
     result->board = _board_to_bitboard(result->pieces, board);
