@@ -40,4 +40,4 @@ psql -d$DB -c"create extension chess_index" >/dev/null
 psql -d$DB -c"create extension cube" >/dev/null
 psql -d$DB -c"create extension smlar" >/dev/null
 
-cd ../games && make test DIREC="./data/test" 
+cd ../index && make test DIREC="./data/test" 

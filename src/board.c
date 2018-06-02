@@ -1,7 +1,10 @@
 
+#include <stdlib.h>
+
 #include "chess_index.h"
 
 #include "utils/varbit.h"
+
 
 /********************************************************
  **     board
@@ -62,105 +65,13 @@ static const int        KNIGHT_DIRS[] = {6, 15, 17, 10, -6, -15, -17, -10};
 static const int        ROOK_DIRS[] =   {DIR_N, DIR_S, DIR_E, DIR_W};
 static const int        BISHOP_DIRS[] = {DIR_NW, DIR_SW, DIR_SE, DIR_NE};
 static const int        QUEEN_DIRS[] =  {DIR_N, DIR_S, DIR_E, DIR_W, DIR_NW, DIR_SW, DIR_SE, DIR_NE};
+
+static int _board_out(const Board * b, char * str);
  
 /*-------------------------------------------------------
  -      static
  -------------------------------------------------------*/
 /*{{{*/
-static int _board_out(const Board * b, char * str)/*{{{*/
-{
-    int             i;
-    unsigned char   j=0, k=0, empties=0, s, piece;
-
-#ifdef EXTRA_DEBUG
-    debug_bitboard(b->board);
-    CH_DEBUG5("orig fen: %s", b->orig_fen);
-    CH_DEBUG5("piece count: %i", b->pcount);
-#endif
-    for (i=SQUARE_MAX-1; i>=0; i--) {
-        if (j >= FEN_MAX) {
-#ifdef EXTRA_DEBUG
-            CH_ERROR("_board_out: internal error: fen is too long; original fen:'%s'", b->orig_fen);
-#else 
-            CH_ERROR("_board_out: internal error: fen is too long");
-#endif
-        }
-        if (k > b->pcount) {
-#ifdef EXTRA_DEBUG
-            CH_ERROR("_board_out: internal error: too many pieces; original fen:'%s'", b->orig_fen);
-#else 
-            CH_ERROR("_board_out: internal error: too many pieces");
-#endif
-        }
-        // need for square type
-        s = TO_SQUARE_IDX(i);
-
-        // if its an empty square
-        if (!CHECK_BIT(b->board, i)) {
-            empties += 1;
-            // else there is apiece
-        } else {
-            // if we have some empties then empty them
-            if (empties) 
-                str[j++] = empties + '0';
-
-            empties = 0;
-            piece = GET_PIECE(b->pieces, k);
-            k++;
-
-            switch(piece) {
-                case BLACK_PAWN:    str[j++] = 'p'; break;
-                case BLACK_KNIGHT:  str[j++] = 'n'; break;
-                case BLACK_BISHOP:  str[j++] = 'b'; break;
-                case BLACK_ROOK:    str[j++] = 'r'; break;
-                case BLACK_QUEEN:   str[j++] = 'q'; break;
-                case BLACK_KING:    str[j++] = 'k'; break;
-                case WHITE_PAWN:    str[j++] = 'P'; break;
-                case WHITE_KNIGHT:  str[j++] = 'N'; break;
-                case WHITE_BISHOP:  str[j++] = 'B'; break;
-                case WHITE_ROOK:    str[j++] = 'R'; break;
-                case WHITE_QUEEN:   str[j++] = 'Q'; break;
-                case WHITE_KING:    str[j++] = 'K'; break;
-                default:
-                                    // should not get here :)
-                                    CH_ERROR("internal error: unknown piece type at piece %i in board: %i", k, piece);
-                                    break;
-            }
-            CH_DEBUG5("_board_out: i:%i :square: %c%c piece:%c",i, CHAR_CFILE(s), CHAR_RANK(s), str[j-1]);
-        }
-        // if were at the end or a row add '/' and perhaps and empty number
-        if (i%8==0) { 
-            if (empties) 
-                str[j++] = empties + '0';
-            if (i) 
-                str[j++] = '/';
-            empties = 0;
-        }
-    }
-    str[j++] = ' ';
-    str[j++] = b->whitesgo ? 'w' : 'b';
-
-    str[j++] = ' ';
-    if (b->wk + b->wq + b->bk + b->bq > 0) {
-        if (b->wk) str[j++] = 'K';
-        if (b->wq) str[j++] = 'Q';
-        if (b->bk) str[j++] = 'k';
-        if (b->bq) str[j++] = 'q';
-    } else
-        str[j++] = '-';
-
-    str[j++] = ' ';
-    CH_DEBUG5("enp: %i", b->enpassant);
-    if (b->enpassant > -1) {
-        str[j++] = CHAR_CFILE(b->enpassant);
-        str[j++] = CHAR_RANK(b->enpassant);
-    } else
-        str[j++] = '-';
-
-    str[j++] = '\0';
-    return j;
-}
-/*}}}*/
 
 static char *_board_pieceindex(const Board * b, side_t go)/*{{{*/
 {
@@ -358,7 +269,6 @@ static int _board_attacks(const Board * b, int * heatmap, uint16 * piecesquares,
 
 
 /*}}}*/
-/*}}}*/
 /*-------------------------------------------------------
  -      operators
  -------------------------------------------------------*/
@@ -458,6 +368,123 @@ board_out(PG_FUNCTION_ARGS)
     PG_RETURN_CSTRING(str);
 }
 
+static int 
+_board_out(const Board * b, char * str)/*{{{*/
+{
+    int             i;
+    unsigned char   j=0, k=0, empties=0, s, piece;
+    char            move[5];
+
+#ifdef EXTRA_DEBUG
+    debug_bitboard(b->board);
+    CH_DEBUG5("orig fen: %s", b->orig_fen);
+    CH_DEBUG5("piece count: %i", b->pcount);
+#endif
+    for (i=SQUARE_MAX-1; i>=0; i--) {
+        if (j >= FEN_MAX) {
+#ifdef EXTRA_DEBUG
+            CH_ERROR("_board_out: internal error: fen is too long; original fen:'%s'", b->orig_fen);
+#else 
+            CH_ERROR("_board_out: internal error: fen is too long");
+#endif
+        }
+        if (k > b->pcount) {
+#ifdef EXTRA_DEBUG
+            CH_ERROR("_board_out: internal error: too many pieces; original fen:'%s'", b->orig_fen);
+#else 
+            CH_ERROR("_board_out: internal error: too many pieces");
+#endif
+        }
+        // need for square type
+        s = TO_SQUARE_IDX(i);
+
+        // if its an empty square
+        if (!CHECK_BIT(b->board, i)) {
+            empties += 1;
+            // else there is apiece
+        } else {
+            // if we have some empties then empty them
+            if (empties) 
+                str[j++] = empties + '0';
+
+            empties = 0;
+            piece = GET_PIECE(b->pieces, k);
+            k++;
+
+            switch(piece) {
+                case BLACK_PAWN:    str[j++] = 'p'; break;
+                case BLACK_KNIGHT:  str[j++] = 'n'; break;
+                case BLACK_BISHOP:  str[j++] = 'b'; break;
+                case BLACK_ROOK:    str[j++] = 'r'; break;
+                case BLACK_QUEEN:   str[j++] = 'q'; break;
+                case BLACK_KING:    str[j++] = 'k'; break;
+                case WHITE_PAWN:    str[j++] = 'P'; break;
+                case WHITE_KNIGHT:  str[j++] = 'N'; break;
+                case WHITE_BISHOP:  str[j++] = 'B'; break;
+                case WHITE_ROOK:    str[j++] = 'R'; break;
+                case WHITE_QUEEN:   str[j++] = 'Q'; break;
+                case WHITE_KING:    str[j++] = 'K'; break;
+                default:
+                                    // should not get here :)
+                                    CH_ERROR("internal error: unknown piece type at piece %i in board: %i", k, piece);
+                                    break;
+            }
+            CH_DEBUG5("_board_out: i:%i :square: %c%c piece:%c",i, CHAR_CFILE(s), CHAR_RANK(s), str[j-1]);
+        }
+        // if were at the end or a row add '/' and perhaps and empty number
+        if (i%8==0) { 
+            if (empties) 
+                str[j++] = empties + '0';
+            if (i) 
+                str[j++] = '/';
+            empties = 0;
+        }
+    }
+    str[j++] = ' ';
+    str[j++] = b->blacksgo ? 'b' : 'w';
+
+    str[j++] = ' ';
+    if (b->wk + b->wq + b->bk + b->bq > 0) {
+        if (b->wk) str[j++] = 'K';
+        if (b->wq) str[j++] = 'Q';
+        if (b->bk) str[j++] = 'k';
+        if (b->bq) str[j++] = 'q';
+    } else
+        str[j++] = '-';
+
+    str[j++] = ' ';
+    if (b->ep_present) {
+        str[j++] = CHAR_CFILE(b->ep_file);
+        if (b->ep_is_white) {
+            str[j++] = '3';
+        } else {
+            str[j++] = '6';
+        }
+    } else
+        str[j++] = '-';
+
+
+    if (!b->move) { // if move is 0 it was never set
+        str[j++] = '\0';
+        return j;
+    }
+
+    str[j++] = ' ';
+    i=0;
+    ch_itoa(b->last_capt, move, 10);
+    while(move[i]) {
+        str[j++] = move[i++];
+    }
+    i=0;
+    str[j++] = ' ';
+    ch_itoa(b->move, move, 10);
+    while(move[i]) {
+        str[j++] = move[i++];
+    }
+    str[j++] = '\0';
+    return j;
+}
+
 
 Datum
 board_in(PG_FUNCTION_ARGS)
@@ -523,7 +550,7 @@ board_in(PG_FUNCTION_ARGS)
                           done=true;
                           break;
                 default:
-                          CH_ERROR("unkdown character in fen '%c'", c);
+                          CH_ERROR("unkown character in fen '%c'", c);
                           break;
         }
         if (k>PIECES_MAX)
@@ -545,12 +572,93 @@ board_in(PG_FUNCTION_ARGS)
 #endif
 
     INIT_BOARD(result, k);
-    _board_footer_in(result, &str[i]);
+    if (str[i])
+        _board_footer_in(result, &str[i]);
     result->board = bitboard;
     result->pcount = k;
     memcpy(result->pieces, pieces, PIECE_SIZE(k));
 
     PG_RETURN_POINTER(result);
+}
+
+void _board_footer_in(Board * b, char * str)
+{
+    char        c, rank=0, ep_file=0;
+    int         i=0;
+    bool        ep_is_white=false, ep_present=false;
+    long        move=0;
+    char        *ptr;
+
+    switch (str[i++]) {
+        case 'w': b->blacksgo=0; break;
+        case 'b': b->blacksgo=1; break;
+        default: CH_ERROR("bad move side in fen: '%c'", str[i-1]); break;
+    }
+    i++;
+    while (str[i] != '\0' && str[i] != ' ') {
+        switch (str[i++]) {
+            case 'K': b->wk=1; break;
+            case 'Q': b->wq=1; break;
+            case 'k': b->bk=1; break;
+            case 'q': b->bq=1; break;
+            case '-': break;
+            default: CH_ERROR("bad castle availability in fen: '%c'", str[i-1]); break;
+        }
+    }
+    c = str[++i];
+    if (c >= 'a' && c <= 'h') {
+        rank = str[++i];
+        ep_present=true;
+        if (rank== '3') 
+            ep_is_white=true;
+        else if (rank== '6') 
+            ep_is_white=false;
+        else 
+            CH_ERROR("bad en passant rank in fen: '%c'", c);
+        ep_file = _cfile_in(c);
+    } else if (c=='-') {
+    } else {
+        CH_ERROR("bad en passant square in fen: '%c%c':", c, rank);
+    }
+    b->ep_present = ep_present;
+    b->ep_file = ep_file;
+    b->ep_is_white = ep_is_white;
+
+    if (!str[++i])
+        return;
+
+    if (str[i] != ' ')
+        CH_ERROR("bad en passant in fen footer '%s' at char '%c'", str, str[i]);
+
+    ptr = &str[++i];
+
+    if (!ptr)
+        return;
+    if (!isdigit(*ptr)) 
+        CH_ERROR("bad move number in fen footer '%s' at char '%c'", str, *ptr);
+
+    move = strtol(ptr, &ptr, 10);
+    if (move > CH_LCAPT_MAX)
+        CH_ERROR("halfmove clock number '%ld' is greater than the maximum of %d:", move, CH_LCAPT_MAX);
+    if (move < 0)
+        CH_ERROR("halfmove clock number '%ld' is negative:", move);
+    b->last_capt = move;
+	ptr++;
+
+    if (!ptr)
+        return;
+    if (!isdigit(*ptr))
+        CH_ERROR("bad halfmove clock number in fen footer '%s' at char '%c'", str, *ptr);
+
+    move = strtol(ptr, &ptr, 10);
+    if (move > CH_MOVE_MAX)
+        CH_ERROR("move number '%ld' is greater than maximum of %d:", move, CH_MOVE_MAX);
+    if (move < 0)
+        CH_ERROR("move number '%ld' is negative:", move);
+    b->move = move;
+
+    if (*(ptr))
+        CH_ERROR("extra characters after last field in fen footer: '%s'", str);
 }
 
 /*}}}*/
@@ -608,7 +716,7 @@ Datum
 board_side(PG_FUNCTION_ARGS)
 {
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
-    PG_RETURN_CHAR(b->whitesgo ? WHITE : BLACK);
+    PG_RETURN_CHAR(b->blacksgo ? BLACK: WHITE);
 }
 
 Datum
@@ -810,13 +918,17 @@ remove_pieces(PG_FUNCTION_ARGS)
 
     INIT_BOARD(result, b->pcount - n);
     result->board = _board_to_bitboard(result->pieces, board);
-    result->whitesgo = b->whitesgo;
+    result->blacksgo = b->blacksgo;
     result->pcount = b->pcount - n;
-    result->enpassant = b->enpassant;
+    result->ep_present = b->ep_present;
+    result->ep_file = b->ep_file;
+    result->ep_is_white = b->ep_is_white;
     result->wk = b->wk;
     result->wq = b->wq;
     result->bk = b->bk;
     result->bq = b->bq;
+    result->move = b->move;
+    result->last_capt = b->last_capt;
     PG_RETURN_POINTER(result);
 }
 

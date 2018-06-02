@@ -42,7 +42,6 @@
             errmsg("corrupt internal data for %s: \"%d\"", type, input)))
 
 #define FEN_MAX 100
-#define PIECES_MAX 32
 #define SQUARE_MAX 64
 
 #define TO_RANK(s) ((s)/8)
@@ -151,28 +150,39 @@ const int               PIECE_INDEX_COUNTS[5];
 
 
 /*
- * base-size -> 14: 8 byte bitboard + 4 byte struct length (required by pg) + 2 for state
- * min size ->  16: 3 pieces of 4 bit nibbles = 2 bytes
- * max size ->  30: 32 pieces of 4 bit nibbles = 16 bytes
+ * base-size -> 16:   4 bytes length (required by pg) 
+ *                  + 4 bytes required for 64 bit alignment (holds state) 
+                    + 8 bytes bitboard
+                    + 4 bit nibble * n pieces
+ * for valid chess games:
+ * min size ->  17: 2 pieces of 4 bit nibbles = 1 bytes
+ * max size ->  32: 32 pieces of 4 bit nibbles = 16 bytes
  *
- * reality of alignment 16-32
  */
+
 typedef struct {
     int32                 vl_len;
-    unsigned int          whitesgo : 1;
-    unsigned int          pcount : 6; //0-32
-    int                   enpassant : 7; // this could be reduced to side and file - 4 bits
-    unsigned int          wk : 1;
-    unsigned int          wq : 1;
-    unsigned int          bk : 1;
-    unsigned int          bq : 1;
-    unsigned int          _unused: 14;
-    bitboard_t            board;
+    unsigned int          blacksgo : 1;     // zeroing memory inits as whites go
+    unsigned int          pcount : 6; // 63
+    unsigned int          ep_present : 1;   // en passant
+    unsigned int          ep_is_white : 1;
+    unsigned int          ep_file: 3;       // we only need the file
+    unsigned int          wk : 1;           // 1 if white king can castle
+    unsigned int          wq : 1;           // "" white queen ""
+    unsigned int          bk : 1;           // "" black king  ""
+    unsigned int          bq : 1;           // "" black queen ""
+    unsigned int          move : 9;         // max 511  
+    unsigned int          last_capt: 7;     // max 127
+    bitboard_t            board;            // occupancy bitmap
 #ifdef EXTRA_DEBUG
 	char			orig_fen[FEN_MAX];
 #endif
     pieces_t        pieces[FLEXIBLE_ARRAY_MEMBER];
 } Board;
+
+#define PIECES_MAX 63
+#define CH_MOVE_MAX 511
+#define CH_LCAPT_MAX 127
 
 
 /*}}}*/
@@ -180,6 +190,7 @@ typedef struct {
 // declarations
   
 uint32          _sdbm_hash(char * str);
+void            ch_itoa(int value, char* buf, int base);
 
 uint16          _pindex_in(char * str);
 char            _square_in(char file, char rank);
@@ -200,12 +211,12 @@ char            _piece_char(const piece_t p);
 board_t *       _bitboard_to_board(const Board *);
 bitboard_t      _board_to_bitboard(pieces_t * pieces, const board_t * board);
 Board *         _init_board(Board * b, int psize);
-void            _board_footer_in(Board * b, const char * str);
+void            _board_footer_in(Board * b, char * str);
 
 void            debug_bitboard(const bitboard_t a);
 void            debug_board(const board_t * b);
 void            debug_bits(uint64 a, unsigned char bits);
-
+char            _cfile_in(char f);
 
 #endif
 

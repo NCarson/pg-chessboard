@@ -188,12 +188,15 @@ cpiece_side(PG_FUNCTION_ARGS)
 
 /*}}}*/
 /********************************************************
- * 		file
+ * 		cfile
  ********************************************************/
-static char _cfile_in(char f) /*{{{*/
+/*{{{*/
+char 
+_cfile_in(char f) 
 {
-    if (f < 'a' || f > 'h') 
-        CH_ERROR("chess file not in range %c", f);
+    if (f < 'a' || f > 'h') {
+        CH_ERROR("cfile '%c' not in range a-h", f);
+    }
     return f - 'a';
 }
 
@@ -208,8 +211,8 @@ Datum
 cfile_in(PG_FUNCTION_ARGS)
 {
     char 			*str = PG_GETARG_CSTRING(0);
-    if (strlen(str) != 2)
-        BAD_TYPE_IN("file", str); 
+
+    if (strlen(str) != 2) BAD_TYPE_IN("file", str); 
     PG_RETURN_CHAR(_cfile_in(str[0]));
 }
 
@@ -233,7 +236,7 @@ cfile_out(PG_FUNCTION_ARGS)
 static char _rank_in(char r) 
 {
     if (r < '1' || r > '8') 
-        CH_ERROR("chess rank '%c' not in range", r);
+        CH_ERROR("chess rank '%c' not in range 1-8", r);
     return r - '1';
 }
 

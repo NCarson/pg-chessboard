@@ -11,6 +11,7 @@ const int               PIECE_INDEX_COUNTS[] = {1, 2, 2, 2, 8};
 const cpiece_t          WHITE_PIECES[] = {WHITE_QUEEN, WHITE_ROOK, WHITE_BISHOP, WHITE_KNIGHT, WHITE_PAWN};
 const cpiece_t          BLACK_PIECES[] = {BLACK_QUEEN, BLACK_ROOK, BLACK_BISHOP, BLACK_KNIGHT, BLACK_PAWN};
 
+
 /********************************************************
 * 		old masks
 ********************************************************/
@@ -99,7 +100,8 @@ char_to_int(PG_FUNCTION_ARGS)
 }
 
 //http://www.cse.yorku.ca/~oz/hash.html
-unsigned int _sdbm_hash(char * str)
+unsigned int 
+_sdbm_hash(char * str)
 {
 	unsigned long long hash = 0;
 	int c;
@@ -109,7 +111,8 @@ unsigned int _sdbm_hash(char * str)
 	return hash;
 }
 
-unsigned short _pindex_in(char * str)
+unsigned 
+short _pindex_in(char * str)
 {
     char            check[] = "QRRBBNNPPPPPPPP";
     unsigned short  result=0;
@@ -131,7 +134,41 @@ unsigned short _pindex_in(char * str)
     //CH_NOTICE("val out: %i, size:%ui", result, sizeof(result));
     //
     return result;
-}/*}}}*/
+}
+
+/**
+ * Ansi C "itoa" based on Kernighan & Ritchie's "Ansi C":
+ */
+	
+static void 
+strreverse(char* begin, char* end) {
+	char aux;
+	while(end>begin)
+		aux=*end, *end--=*begin, *begin++=aux;
+}
+	
+void 
+ch_itoa(int value, char* str, int base) {
+	
+	static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+	char* wstr=str;
+	int sign;
+
+	// Validate base
+	if (base<2 || base>35){ *wstr='\0'; return; }
+	
+	// Take care of sign
+	if ((sign=value) < 0) value = -value;
+
+	// Conversion. Number is reversed.
+	do *wstr++ = num[value%base]; while(value/=base);
+	if(sign<0) *wstr++='-';
+	*wstr='\0';
+	// Reverse string
+	strreverse(str,wstr-1);
+}
+
+/*}}}*/
 /********************************************************
 * 		square
 ********************************************************/
@@ -383,47 +420,6 @@ char _piece_char(const piece_t p)
 * 		board
 ********************************************************/
 /*{{{*/
-void _board_footer_in(Board * b, const char * str)
-{
-    char        c, p=0, enpassant=-1;
-    int         i = 0;
-
-    switch (str[i++]) {
-        case 'w': b->whitesgo=1; break;
-        case 'b': b->whitesgo=0; break;
-        default: CH_ERROR("bad move side in fen"); break;
-    }
-    i++;
-    while (str[i] != '\0' && str[i] != ' ') {
-        switch (str[i++]) {
-            case 'K': b->wk=1; break;
-            case 'Q': b->wq=1; break;
-            case 'k': b->bk=1; break;
-            case 'q': b->bq=1; break;
-            case '-': break;
-            default: CH_ERROR("bad castle availability in fen"); break;
-        }
-    }
-    c = str[++i];
-    if (c >= 'a' && c <= 'h') {
-        p = str[++i];
-        if (p != '3' && p != '6')
-            CH_ERROR("bad enpassant rank in fen '%c'", p);
-        enpassant = _square_in(c, p);
-
-        CH_DEBUG5("_fen_in: enpessant: %c%c:", CHAR_CFILE(enpassant), CHAR_RANK(enpassant));
-
-        // enpassant is set on the capture not on the pawn
-        // so we have have to go up a rank to find the pawn
-        // enpassant += (p=='3' ? 8 : -8);
-
-    } else if (c=='-') {
-    } else {
-        CH_DEBUG5("fen:'%s':", str);
-        CH_ERROR("bad enpassant in fen: '%c%i':", c, p);
-    }
-    b->enpassant = enpassant;
-}
 //XXX needs to be pfreed
 board_t *_bitboard_to_board(const Board * b)
 {

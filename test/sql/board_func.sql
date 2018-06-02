@@ -1,7 +1,7 @@
 
 
 select expected_or_fail_bool(
-    (select footer('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)::text = 'w KQkq -'), true);
+    (select footer('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'::board)::text = 'w KQkq -'), true);
 
 select expected_or_fail_bool(
     (select pcount('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board) = 32), true);
