@@ -4,10 +4,21 @@
 ## Fast, Compact Types for Chess Board Positions
 
 ```sql
-select 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board;
-
-board                           
---------------------------------------------------------
-rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-(1 row)
+select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board);```
 ```
+                   pretty                    
+---------------------------------------------
+ rnbqkbnr                                   +
+ pppppppp                                   +
+ ........                                   +
+ ........                                   +
+ ........                                   +
+ ........                                   +
+ PPPPPPPP                                   +
+ RNBQKBNR  w  KQkq  -  0                    +
+ rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR+
+                                            +
+(1 row)
+``
+
+
