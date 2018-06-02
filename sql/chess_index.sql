@@ -1,9 +1,10 @@
 
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
 
-\echo Use "CREATE EXTENSION chess_index" to load this file. \quit
+--\echo Use "CREATE EXTENSION chess_index" to load this file. \quit
 
 --\set client_min_messages=DEBUG5;
+
 
 /****************************************************************************
 -- side : white or black
@@ -605,55 +606,41 @@ CREATE TYPE board(
     OUTPUT         = board_out,
     STORAGE        = PLAIN
 );
+COMMENT ON TYPE board IS 
+'### Represents a chess position.
 
+A fast and space efficient chess board type
+There three ways to initialize the board:
+```sql
+SELECT ''rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1''::board;
+SELECT ''rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -''::board;
+SELECT ''rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR''::board;
+```
+If the halfmove clock and move number are not present they will be set to zero
+and not printed.  If the side, castling and en passant are not present, then
+the board will be set to whites go and castling and en passant will be unset.
+
+Equality and sorting operators do not take into account the halfmove clock and
+the move number. If they did, the boards would have to be recreated with the
+same move number to check for duplicate positions.  To create a unique index or
+primary key with the move number you would: `sql CREATE INDEX idx_board ON
+films (theboard, move(theboard)); `.
+
+The size of the datatype is variable depending on the pieces. An empty board
+takes up 16 bytes, where for every two pieces needs another byte. So the
+starting position with 32 pieces in standard chess would take up another 16
+bytes for a total of 32. Comparatively, the starting fen string stored as text
+would take 56 bytes of storage.
+
+
+
+';
+
+;
 /*---------------------------------------/
-/  functions                             /
+/  pieces functions                      /
 /---------------------------------------*/
-
-CREATE FUNCTION footer(board)
-RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION pcount(board)
-RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION pcount(board, piece)
-RETURNS int AS '$libdir/chess_index', 'pcount_piece' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION pcount(board, cpiece)
-RETURNS int AS '$libdir/chess_index', 'pcount_cpiece' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION side(board)
-RETURNS side AS '$libdir/chess_index', 'board_side' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION score(board)
-RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION pieceindex(board, side)
-RETURNS pindex AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION board(piecesquare[], text)
-RETURNS board AS '$libdir/chess_index', 'piecesquares_to_board' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION board(piecesquare[])
-RETURNS board AS $$ 
-    SELECT board($1, 'w - -'::text)
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-
-CREATE CAST (piecesquare[] as board) WITH FUNCTION board(piecesquare[]);
-
-CREATE FUNCTION pfilter(board, pfilter)
-RETURNS board AS '$libdir/chess_index', 'remove_pieces' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION heatmap(board)
-RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION bitboard(board, cpiece)
-RETURNS bit(64) AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION bitboard_array(board, cpiece)
-RETURNS bit[] AS $$
-    select string_to_array(bitboard($1, $2)::text, NULL)::bit[]
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+/*{{{*/
 
 CREATE FUNCTION _pieces(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
@@ -670,33 +657,65 @@ RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION _pieces_squares(board, square[])
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
-CREATE FUNCTION pieces(board, square)
-RETURNS piecesquare AS '$libdir/chess_index', '_pieces_square' LANGUAGE C IMMUTABLE STRICT;
-
 CREATE OR REPLACE FUNCTION pieces(board)
 RETURNS piecesquare[] AS $$
     select "_pieces"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pieces(board) IS 
+'Returns an array of piecesquares occupying the board in fen order.
+The sort order is in fourth quadrant where  a8 is 0. The pieces family of functions all have the same sort behavior except for pieces_so.
+https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
+
+Search for pieces occupying a1 or are black kings:
+```sql
+    SELECT ps FROM 
+    (
+       select unnest(pieces(''rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR''::board)) ps
+    ) t 
+   WHERE ps::square=''a1'' 
+   OR ps::cpiece=''K'';
+```
+```
+ ps  
+---------------
+ Ra1
+ Ke1
+(2 rows)
+```
+';
+
+CREATE FUNCTION pieces(board, square)
+RETURNS piecesquare AS '$libdir/chess_index', '_pieces_square' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION pieces(board, square) IS 
+'Returns a piecesquare given the square or null if there is no piece.';
 
 CREATE OR REPLACE FUNCTION pieces(board, side)
 RETURNS piecesquare[] AS $$
     select "_pieces"($1, $2)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pieces(board, side) IS 
+'Returns an array of piecesquares for the side.';
 
 CREATE OR REPLACE FUNCTION pieces(board, cpiece)
 RETURNS piecesquare[] AS $$
     select "_pieces_cpiece"($1, $2)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pieces(board, cpiece) IS 
+'Returns an array of piecesquares for the colored pieces that are present.';
 
 CREATE OR REPLACE FUNCTION pieces(board, piece)
 RETURNS piecesquare[] AS $$
     select "_pieces_piece"($1, $2)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pieces(board, piece) IS 
+'Returns an array of piecesquares for the pieces that are present.';
 
 CREATE OR REPLACE FUNCTION pieces(board, square[])
 RETURNS piecesquare[] AS $$
     select "_pieces_squares"($1, $2)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pieces(board, square[]) IS 
+'Returns an array of piecesquares given the squares that are occupied.';
 
 CREATE CAST (board as piecesquare[]) WITH FUNCTION pieces(board);
 
@@ -712,6 +731,10 @@ RETURNS piecesquare[] AS $$
         ) tt order by s
     ) ttt ;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pieces_so(board) IS 
+'Returns an array of piecesquares in square order [sql].
+The sort order is in first quadrant where a1 is 0.
+https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)';
 
 CREATE FUNCTION _attacks(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
@@ -726,11 +749,96 @@ CREATE OR REPLACE FUNCTION mobility(board)
 RETURNS piecesquare[] AS $$
     select "_mobility"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+/*}}}*/
+/*---------------------------------------/
+/  functions                             /
+/---------------------------------------*/
+/*{{{*/
+CREATE FUNCTION footer(board)
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION footer(board) IS 
+'Returns the the fen string after the first board field.';
+
+CREATE FUNCTION pcount(board)
+RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION pcount(board) IS 
+'Returns aumount of pieces on the board.';
+
+CREATE FUNCTION pcount(board, piece)
+RETURNS int AS '$libdir/chess_index', 'pcount_piece' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION pcount(board, piece) IS 
+'Returns aumount of pieces on the board of a certain type piece.';
+
+CREATE FUNCTION pcount(board, cpiece)
+RETURNS int AS '$libdir/chess_index', 'pcount_cpiece' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION pcount(board, cpiece) IS 
+'Returns aumount of pieces on the board of a certain type cpiece.';
+
+CREATE FUNCTION side(board)
+RETURNS side AS '$libdir/chess_index', 'board_side' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION side(board) IS 
+'Returns the side which has the go.';
+
+CREATE FUNCTION move(board)
+RETURNS int AS '$libdir/chess_index', 'board_move' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION move(board) IS 
+'Returns the move number.
+It will be zero if it was not set in the fen';
+
+CREATE FUNCTION halfmove(board)
+RETURNS int AS '$libdir/chess_index', 'board_halfmove' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION halfmove(board) IS 
+'Returns the halfmove clock number.
+It will be zero if it was not set in the fen';
+
+CREATE FUNCTION score(board)
+RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION score(board) IS 
+'Returns the sum of the piece values.
+Sums the piece values using {1,3,3,5,9} for {P,B,N,R,Q} respectivly with negative values for the black pieces.';
+
+CREATE FUNCTION pieceindex(board, side)
+RETURNS pindex AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION pieceindex(board, side) IS 
+'Returns the pieceindex given a side.';
+
+CREATE FUNCTION board(piecesquare[], text)
+RETURNS board AS '$libdir/chess_index', 'piecesquares_to_board' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION board(piecesquare[], text) IS 
+'Returns a board given the pieces and the footer part of the fen string.';
+
+CREATE FUNCTION board(piecesquare[])
+RETURNS board AS $$ 
+    SELECT board($1, 'w - -'::text)
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION board(piecesquare[]) IS 
+'Returns a board given the pieces with initial state.';
+
+CREATE CAST (piecesquare[] as board) WITH FUNCTION board(piecesquare[]);
+
+CREATE FUNCTION pfilter(board, pfilter)
+RETURNS board AS '$libdir/chess_index', 'remove_pieces' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION pfilter(board, pfilter) IS 
+'Returns a board given the pfilter.';
+
+CREATE FUNCTION heatmap(board)
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION bitboard(board, cpiece)
+RETURNS bit(64) AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION bitboard(board, cpiece) IS 
+'Returns a 64 bit string with 1''s representing the occupancy of the piece.';
+
+CREATE FUNCTION bitboard_array(board, cpiece)
+RETURNS bit[] AS $$
+    select string_to_array(bitboard($1, $2)::text, NULL)::bit[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION bitboard_array(board, cpiece) IS 
+'Returns a 64 bit array with 1''s representing the occupancy of the piece. (sql)';
 
 CREATE FUNCTION int_array(board)
 RETURNS int[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
-
+/*}}}*/
 /*---------------------------------------/
 /  ops                                   /
 /---------------------------------------*/
@@ -827,7 +935,6 @@ CREATE OPERATOR CLASS hash_board_ops
 DEFAULT FOR TYPE board USING hash AS
 OPERATOR        1       = ,
 FUNCTION        1       board_hash(board);/*}}}*/
-
 /*}}}*/
 /****************************************************************************
 -- file

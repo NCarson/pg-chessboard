@@ -54,6 +54,8 @@ PG_FUNCTION_INFO_V1(_mobility);
 PG_FUNCTION_INFO_V1(score);
 PG_FUNCTION_INFO_V1(bitboard);
 PG_FUNCTION_INFO_V1(int_array);
+PG_FUNCTION_INFO_V1(board_move);
+PG_FUNCTION_INFO_V1(board_halfmove);
 /*}}}*/
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
@@ -666,6 +668,20 @@ void _board_footer_in(Board * b, char * str)
  -      functions
  -------------------------------------------------------*/
 /*{{{*/
+
+Datum
+board_move(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    PG_RETURN_INT32(b->move);
+}
+
+Datum
+board_halfmove(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    PG_RETURN_INT32(b->last_capt);
+}
 
 Datum
 pcount(PG_FUNCTION_ARGS)

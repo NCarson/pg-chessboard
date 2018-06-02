@@ -4,4 +4,5 @@
 - test empty boards: select pieces('8/8/8/8/8/8/8/8 w - - -'::board);
 - test pfilter to give an empty board
 - test side(cpiece)
+- have footer(board) return text
 
