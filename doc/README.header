@@ -8,7 +8,7 @@ select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)
 ```
 ```
                    pretty                    
-                                             
+ \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
  rnbqkbnr                                   +
  pppppppp                                   +
  ........                                   +
@@ -20,6 +20,6 @@ select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)
  rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR+
                                             +
 (1 row)
-``
+```
 
 
