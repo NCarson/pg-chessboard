@@ -1,7 +1,7 @@
 
 
 SELECT
-    string_agg('### ' || name || '(' || args || ') -> ' || type || E'\n\n' || descr, E'\n\n')
+    string_agg('#### ' || name || '(' || args || ') -> ' || type || E'\n\n' || descr, E'\n\n')
 FROM
 (
 SELECT 
