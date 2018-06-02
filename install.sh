@@ -37,6 +37,7 @@ dropdb $DB
 createdb $DB
 psql -d$DB -c"drop extension if exists chess_index cascade" >/dev/null
 psql -d$DB -c"create extension chess_index" >/dev/null
+sh doc/makedoc.sh
 psql -d$DB -c"create extension cube" >/dev/null
 psql -d$DB -c"create extension smlar" >/dev/null
 

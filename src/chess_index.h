@@ -163,7 +163,7 @@ const int               PIECE_INDEX_COUNTS[5];
 typedef struct {
     int32                 vl_len;
     unsigned int          blacksgo : 1;     // zeroing memory inits as whites go
-    unsigned int          pcount : 6; // 63
+    unsigned int          pcount : 6;       // 63
     unsigned int          ep_present : 1;   // en passant
     unsigned int          ep_is_white : 1;
     unsigned int          ep_file: 3;       // we only need the file

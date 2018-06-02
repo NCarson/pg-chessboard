@@ -2,7 +2,11 @@
 -- board(pieces('8/2p3kp/1P4p1/2P2p2/8/3P3P/2Q2bPK/4q3 b - -'::board, 'p')) fails
 
 - test empty boards: select pieces('8/8/8/8/8/8/8/8 w - - -'::board);
-- test pfilter to give an empty board
+
+- remove pfilter and change functions to take piece[] and cpiece[]
 - test side(cpiece)
 - have footer(board) return text
+- fix pretty(board)
+- fix pindex
+- fix invert
 
