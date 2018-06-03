@@ -8,7 +8,7 @@ select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)
 ```
 ```
                    pretty                    
-                                             
+ \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
  rnbqkbnr                                   +
  pppppppp                                   +
  ........                                   +
@@ -20,7 +20,7 @@ select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)
  rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR+
                                             +
 (1 row)
-``
+```
 
 
 ## Types
@@ -107,7 +107,7 @@ While 32 bytes data size + 24 tuple header = 56 bytes so about 10%
 reduction in storage for maximum sized boards.
 
 Also keep in mind operations on the pieces would require
-O(n\*log(n)) to decompress the code. While this implimentation is O(n)
+O(n\\*log(n)) to decompress the code. While this implimentation is O(n)
 for all the pieces or O(1) for querying certain squares.
 
 For simplicity and faster operations I think this is a pretty good way to
