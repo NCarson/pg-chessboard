@@ -32,7 +32,7 @@ The side TO GO OR the side OF a piece.
 Input format is ''w'' or ''b''. Uses 1 byte of storage
 Supports =, <>, and hash operations.
 ```sql
-select pieces('8/8/8/8/8/8/8/6Pp'::board, 'b'::side);
+select pieces(''8/8/8/8/8/8/8/6Pp''::board, ''b''::side);
 ```
 ```
  pieces 
@@ -216,14 +216,15 @@ CREATE TYPE square(
 COMMENT ON TYPE square IS '
 A square on the board.
 
-The sort order is in fourth quadrant where a8 is 0.
-https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
+The sort order is in fourth 
+[quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
+where a8 is 0.
 Input format is ''e4''.
 Uses 1 byte of storage. Squares can be cast to chars and ints to work with the raw
 number.  Supports =, <>, <, >, >=, <=, hash operations and btree operations.
 
 ```sql
-select pieces('8/8/8/8/8/8/8/6Pp'::board, 'h1'::square);
+select pieces(''8/8/8/8/8/8/8/6Pp''::board, ''h1''::square);
 ```
 ```
  pieces 
@@ -362,7 +363,7 @@ Uses 1 byte of storage.
 Supports =, <>, and hash operations.
 
 ```sql
-select pieces('8/8/8/8/8/8/8/6Pp'::board, 'p'::piece);
+select pieces(''8/8/8/8/8/8/8/6Pp''::board, ''p''::piece);
 ```
 ```
   pieces   
@@ -455,7 +456,7 @@ Supports =, <>, and hash operations.
 Can be cast to piece.
 
 ```sql
-select pieces('8/8/8/8/8/8/8/6Pp'::board, 'p'::cpiece);
+select pieces(''8/8/8/8/8/8/8/6Pp''::board, ''p''::cpiece);
 ```
 ```
  pieces 
@@ -475,7 +476,7 @@ values = {1,3,3,4,9,0} for {p,n,b,r,q,k}
 
 CREATE FUNCTION side(cpiece)
 RETURNS side AS '$libdir/chess_index', 'cpiece_side' LANGUAGE C IMMUTABLE STRICT;
-COMMENT ON FUNCTION pretty(cpiece) IS '
+COMMENT ON FUNCTION side(cpiece) IS '
 Returns the side type of the piece.
 ';
 
