@@ -6,8 +6,7 @@
 ```sql
 select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board);
 ```
-```
-                   pretty                    
+```                  pretty                    
  --------------------------------------------
  rnbqkbnr                                   +
  pppppppp                                   +
@@ -97,27 +96,30 @@ same move number to check for duplicate positions.  To create a unique index or
 primary key with the move number you could: `CREATE INDEX idx_board ON
 position (theboard, move(theboard)); `.
 
-#### Notes on implementation
+#### Notes on Implementation
 
 Postgres requires a 4 byte size field (vl_len) to be the first member of a struct for
 variable size data types. On a 64 bit machine this will create a 4 byte
-alinment hole https://www.geeksforgeeks.org/structure-member-alignment-padding-and-data-packing/.
+[alignment hole](https://www.geeksforgeeks.org/structure-member-alignment-padding-and-data-packing/).
 This is where board state such as en passant, move number, half move clock, etc. are kept.
 Then an 8 byte bitboard or bitmap keeps the piece occupancy
-https://codegolf.stackexchange.com/questions/19397/smallest-chess-board-compression 
-(second answer). The last field keeps the variable size piece nibbles.
+\([see the second here](https://codegolf.stackexchange.com/questions/19397/smallest-chess-board-compression). 
+The last field keeps the variable size piece nibbles.
 
-But if you look at the code golf discusion you will see that huffman encoding
+But if you look at the code golf discussion you will see that 
+[Huffman encoding](https://www.geeksforgeeks.org/greedy-algorithms-set-3-huffman-coding/)
 would lead to smaller sizes. With the smallest design listed at 160 bits or 20
 bytes. That does not account for move and halfmove clock which need another 15
 bits. We could have overloaded castling and en passant into the piece encoding to save
 16 bits. piece count could be partially deduced from vl_len but we wont know if the last
 nible is empty or not since the 192 bit solution uses all symbols. And all solutions seem
-to ignore that you will need an EOF marker to see if your in padding or not
-https://www2.cs.duke.edu/csed/poop/huff/info/ so all solutions need to add at least 4 bits.
+to ignore that you will need an EOF marker to see if your in 
+[padding] (https://www2.cs.duke.edu/csed/poop/huff/info/) or not. 
+so all solutions need to add at least 4 bits.
 
-Something to keep in mind also is that Postgres stores info on each row
-https://stackoverflow.com/questions/13570613/making-sense-of-postgres-row-sizes
+
+Something to keep in mind also is that Postgres stores info on
+[each row](https://stackoverflow.com/questions/13570613/making-sense-of-postgres-row-sizes)
 of 23 btyes! So in Postgres the bare minimum *row size* would be:
 
 ```
@@ -143,7 +145,7 @@ for all the pieces or O(1) for querying certain squares.
 
 For simplicity and faster operations I think this is a pretty good way to
 do it. lichess.org is producing 20 million games per month that you can
-download https://database.lichess.org/. If an average game is about 30
+[download](https://database.lichess.org/). If an average game is about 30
 moves with 60 positions for black and white moves then it would take
 about 3k to store one game or 3GB per million games. Then a years worth of 
 games would take 720 GB. Which are tractable numbers.
@@ -191,7 +193,7 @@ Uses 1 byte of storage.
 Supports =, <>, and hash operations.
 
 ```sql
-select pieces('8/8/8/8/8/8/8/6Pp'::board, 'p'::piece);
+SELECT pieces('8/8/8/8/8/8/8/6Pp'::board, 'p'::piece);
 ```
 ```
   pieces   
@@ -238,7 +240,7 @@ The side TO GO OR the side OF a piece.
 Input format is 'w' or 'b'. Uses 1 byte of storage
 Supports =, <>, and hash operations.
 ```sql
-select pieces('8/8/8/8/8/8/8/6Pp'::board, 'b'::side);
+SELECT pieces('8/8/8/8/8/8/8/6Pp'::board, 'b'::side);
 ```
 ```
  pieces 
@@ -261,7 +263,7 @@ Uses 1 byte of storage. Squares can be cast to chars and ints to work with the r
 number.  Supports =, <>, <, >, >=, <=, hash operations and btree operations.
 
 ```sql
-select pieces('8/8/8/8/8/8/8/6Pp'::board, 'h1'::square);
+SELECT pieces('8/8/8/8/8/8/8/6Pp'::board, 'h1'::square);
 ```
 ```
  pieces 
@@ -273,7 +275,7 @@ select pieces('8/8/8/8/8/8/8/6Pp'::board, 'h1'::square);
 ## Functions
 ### bitboard(board, cpiece) -> bit
 
-Returns a 64 bit string with 1's representing the occupancy of the piece.
+Returns a 64 bit string with 1's representing the occupancy of the piece in fen order.
 
 ### bitboard_array(board, cpiece) -> bit[]
 
@@ -339,14 +341,16 @@ Returns the pieceindex given a side.
 ### pieces(board) -> piecesquare[]
 
 Returns an array of piecesquares occupying the board in fen order.
-The sort order is in fourth quadrant where  a8 is 0. The pieces family of functions all have the same sort behavior except for pieces_so.
+The sort order is in fourth
+[quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
+where  a8 is 0. The pieces family of functions all have the same sort behavior except for pieces_so.
 https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
 
 Search for pieces occupying a1 or are white kings:
 ```sql
     SELECT ps FROM 
     (
-       select unnest(pieces('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'::board)) ps
+       SELECT unnest(pieces('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'::board)) ps
     ) t 
    WHERE ps::square='a1' 
    OR ps::cpiece='K';
@@ -383,7 +387,9 @@ Returns an array of piecesquares given the squares that are occupied.
 ### pieces_so(board) -> piecesquare[]
 
 Returns an array of piecesquares in square order [sql].
-The sort order is in first quadrant where a1 is 0.
+The sort order is in first
+[quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
+where a1 is 0.
 https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
 
 ### pretty(board, uni boolean DEFAULT false, showfen boolean DEFAULT true) -> text
