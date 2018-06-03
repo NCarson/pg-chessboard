@@ -9,4 +9,5 @@
 - fix pretty(board)
 - fix pindex
 - fix invert
+- fix cfile and rank
 

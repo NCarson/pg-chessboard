@@ -2,7 +2,7 @@
 select '## Types';
 
 select
-    string_agg('#### ' || name || E'\n\n' || coalesce(descr, 'TODO'), E'\n\n')
+    string_agg('### ' || name || E'\n\n' || coalesce(descr, 'TODO'), E'\n\n')
 from
 (
 	SELECT n.nspname as "Schema",
@@ -21,7 +21,7 @@ from
 select '## Functions';
 
 SELECT
-    string_agg('#### ' || name || '(' || args || ') -> ' || type || E'\n\n' || descr, E'\n\n')
+    string_agg('### ' || name || '(' || args || ') -> ' || type || E'\n\n' || descr, E'\n\n')
 FROM
 (
 SELECT 

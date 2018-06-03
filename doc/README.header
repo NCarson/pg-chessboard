@@ -22,4 +22,35 @@ select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)
 (1 row)
 ```
 
+pg-chessboard is an extension for Postgres. https://github.com/theory/pgtap has
+good general instrictions on how to installl an extension for Postgres. It does 
+not generate moves or play chess \(see [pgchess](https://pgxn.org/dist/pgchess/0.1.0/) for
+and extension that does play chess\).
+
+It is designed to efficiently store board positions from 
+[fen](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation)
+fen strings. The boards are then very searchable and can be used
+with gin indexes to find certain types of positions quickly.
+
+Its main types are board, square, piece, cpiece, and piecesquare.
+Positions can be searched by unnesting the pieces:
+
+```sql
+SELECT 
+	ps::square AS square, ps::cpiece AS cpiece, ps::cpiece::piece AS piece 
+FROM (
+	SELECT unnest(pieces('8/8/8/8/8/8/8/5NnR'::board)) ps
+)t ;
+```
+```
+ square | cpiece | piece 
+--------+--------+-------
+ f1     | N      | N
+ g1     | n      | N
+ h1     | R      | R
+(3 rows)
+```
+
+There are also many fast c search functions that can search the board.
+
 

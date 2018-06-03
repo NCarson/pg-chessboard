@@ -31,6 +31,15 @@ The side TO GO OR the side OF a piece.
 
 Input format is ''w'' or ''b''. Uses 1 byte of storage
 Supports =, <>, and hash operations.
+```sql
+select pieces('8/8/8/8/8/8/8/6Pp'::board, 'b'::side);
+```
+```
+ pieces 
+------------------------
+ {ph1}
+(1 row)
+```
 ';
 
 CREATE FUNCTION side_eq(side, side)
@@ -209,12 +218,20 @@ A square on the board.
 
 The sort order is in fourth quadrant where a8 is 0.
 https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
-
 Input format is ''e4''.
-Uses 1 byte of storage. They can be cast to char''s and ints to work with the raw
+Uses 1 byte of storage. Squares can be cast to chars and ints to work with the raw
 number.  Supports =, <>, <, >, >=, <=, hash operations and btree operations.
-';
 
+```sql
+select pieces('8/8/8/8/8/8/8/6Pp'::board, 'h1'::square);
+```
+```
+ pieces 
+------------------------
+ ph1
+(1 row)
+```
+';
 
 CREATE CAST ("char" AS square) WITHOUT FUNCTION;
 CREATE CAST (square AS "char") WITHOUT FUNCTION;
@@ -343,15 +360,33 @@ Represents a chess piece without color.
 Input format is ''P'' or ''p'' (case does not matter).
 Uses 1 byte of storage. 
 Supports =, <>, and hash operations.
+
+```sql
+select pieces('8/8/8/8/8/8/8/6Pp'::board, 'p'::piece);
+```
+```
+  pieces   
+---------------------------------
+ {Pg1,ph1}
+(1 row)
+```
 ';
 
 CREATE FUNCTION value(piece)
 RETURNS int AS '$libdir/chess_index', 'piece_value' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION value(piece) IS '
+Returns the scoring value of the piece.
+
+values = {1,3,3,4,9,0} for {p,n,b,r,q,k}
+';
 
 CREATE OR REPLACE FUNCTION pretty(piece)
 RETURNS text AS $$
     select translate($1::text, 'KQRBNP', U&'\265A\265B\265C\265D\265E\265F')
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pretty(piece) IS '
+Returns the unicode character of the piece.
+';
 
 
 -----------------------------------------------------------------------------
@@ -391,7 +426,6 @@ DEFAULT FOR TYPE piece USING hash AS
 OPERATOR        1       = ,
 FUNCTION        1       hash_square(piece);
 
-
 /*}}}*/
 /****************************************************************************
 -- cpiece
@@ -418,13 +452,32 @@ Represents a chess piece with color.
 Input format is ''P'' or ''p'' (capitalized pieces are white).
 Uses 1 byte of storage. 
 Supports =, <>, and hash operations.
+Can be cast to piece.
+
+```sql
+select pieces('8/8/8/8/8/8/8/6Pp'::board, 'p'::cpiece);
+```
+```
+ pieces 
+------------------------
+ {ph1}
+(1 row)
+```
 ';
 
 CREATE FUNCTION value(cpiece)
 RETURNS int AS '$libdir/chess_index', 'cpiece_value' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION value(cpiece) IS '
+Returns the scoring value of the colored piece.
+
+values = {1,3,3,4,9,0} for {p,n,b,r,q,k}
+';
 
 CREATE FUNCTION side(cpiece)
 RETURNS side AS '$libdir/chess_index', 'cpiece_side' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION pretty(cpiece) IS '
+Returns the side type of the piece.
+';
 
 CREATE FUNCTION piece(cpiece)
 RETURNS piece AS '$libdir/chess_index', 'cpiece_to_piece' LANGUAGE C IMMUTABLE STRICT;
@@ -434,6 +487,9 @@ CREATE OR REPLACE FUNCTION pretty(cpiece)
 RETURNS text AS $$
     select translate($1::text, 'KQRBNPkqrbnp', U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F')
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pretty(cpiece) IS '
+Returns the unicode character of the piece.
+';
 
 
 -----------------------------------------------------------------------------
@@ -522,6 +578,7 @@ A colored piece occuping a square on the board.
 
 Uses 2 bytes of storage. Input format is ''Ke4''.
 Supports =, <>, <, >, >=, <=, hash operations and btree operations.
+Can be cast to square, cpiece and int2.
 ';
 
 CREATE CAST (piecesquare as int2) WITHOUT FUNCTION;
@@ -689,7 +746,7 @@ would take 56 bytes of storage.
 
 Supports =, <>, <, >, >=, <=, hash operations and btree operations.
 
-### Equality
+#### Equality
 
 Equality and sorting operators do not take into account the halfmove clock and
 the move number. If they did, the boards would have to be recreated with the
@@ -697,13 +754,13 @@ same move number to check for duplicate positions.  To create a unique index or
 primary key with the move number you could: `CREATE INDEX idx_board ON
 position (theboard, move(theboard)); `.
 
-### Notes on implementation
+#### Notes on implementation
 
 Postgres requires a 4 byte size field (vl_len) to be the first member of a struct for
 variable size data types. On a 64 bit machine this will create a 4 byte
 alinment hole https://www.geeksforgeeks.org/structure-member-alignment-padding-and-data-packing/.
 This is where board state such as en passant, move number, half move clock, etc. are kept.
-Then an 8 byte bitboard or bitmap is keeps the piece occupancy
+Then an 8 byte bitboard or bitmap keeps the piece occupancy
 https://codegolf.stackexchange.com/questions/19397/smallest-chess-board-compression 
 (second answer). The last field keeps the variable size piece nibbles.
 
@@ -780,7 +837,7 @@ COMMENT ON FUNCTION pieces(board) IS
 The sort order is in fourth quadrant where  a8 is 0. The pieces family of functions all have the same sort behavior except for pieces_so.
 https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
 
-Search for pieces occupying a1 or are black kings:
+Search for pieces occupying a1 or are white kings:
 ```sql
     SELECT ps FROM 
     (
@@ -1086,7 +1143,7 @@ Represents a chess board file a-h.
 
 Input format is ''a''.
 Uses 1 byte of storage.
-Can be cast to an int where a=0.
+Can be cast to an int where ''a''=0.
 ';
 
 CREATE FUNCTION square_to_cfile(square)
@@ -1130,7 +1187,7 @@ Represents a chess rank file 1-8.
 
 Input format is ''1''.
 Uses 1 byte of storage.
-Can be cast to an int where 1=0.
+Can be cast to an int where ''1''=0.
 ';
 
 
