@@ -32,7 +32,7 @@ The side TO GO OR the side OF a piece.
 Input format is ''w'' or ''b''. Uses 1 byte of storage
 Supports =, <>, and hash operations.
 ```sql
-select pieces(''8/8/8/8/8/8/8/6Pp''::board, ''b''::side);
+SELECT pieces(''8/8/8/8/8/8/8/6Pp''::board, ''b''::side);
 ```
 ```
  pieces 
@@ -224,7 +224,7 @@ Uses 1 byte of storage. Squares can be cast to chars and ints to work with the r
 number.  Supports =, <>, <, >, >=, <=, hash operations and btree operations.
 
 ```sql
-select pieces(''8/8/8/8/8/8/8/6Pp''::board, ''h1''::square);
+SELECT pieces(''8/8/8/8/8/8/8/6Pp''::board, ''h1''::square);
 ```
 ```
  pieces 
@@ -363,7 +363,7 @@ Uses 1 byte of storage.
 Supports =, <>, and hash operations.
 
 ```sql
-select pieces(''8/8/8/8/8/8/8/6Pp''::board, ''p''::piece);
+SELECT pieces(''8/8/8/8/8/8/8/6Pp''::board, ''p''::piece);
 ```
 ```
   pieces   
@@ -383,7 +383,7 @@ values = {1,3,3,4,9,0} for {p,n,b,r,q,k}
 
 CREATE OR REPLACE FUNCTION pretty(piece)
 RETURNS text AS $$
-    select translate($1::text, 'KQRBNP', U&'\265A\265B\265C\265D\265E\265F')
+    SELECT translate($1::text, 'KQRBNP', U&'\265A\265B\265C\265D\265E\265F')
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(piece) IS '
 Returns the unicode character of the piece.
@@ -456,7 +456,7 @@ Supports =, <>, and hash operations.
 Can be cast to piece.
 
 ```sql
-select pieces(''8/8/8/8/8/8/8/6Pp''::board, ''p''::cpiece);
+SELECT pieces(''8/8/8/8/8/8/8/6Pp''::board, ''p''::cpiece);
 ```
 ```
  pieces 
@@ -486,7 +486,7 @@ CREATE CAST (cpiece as piece) WITH FUNCTION piece;
 
 CREATE OR REPLACE FUNCTION pretty(cpiece)
 RETURNS text AS $$
-    select translate($1::text, 'KQRBNPkqrbnp', U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F')
+    SELECT translate($1::text, 'KQRBNPkqrbnp', U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F')
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(cpiece) IS '
 Returns the unicode character of the piece.
@@ -601,7 +601,7 @@ Casts piecesquare to cpiece.
 
 CREATE OR REPLACE FUNCTION pretty(piecesquare)
 RETURNS text AS $$
-    select pretty($1::cpiece) || $1::square::text
+    SELECT pretty($1::cpiece) || $1::square::text
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(piecesquare) IS '
 Returns unicode chess symbol of piece.
@@ -609,7 +609,7 @@ Returns unicode chess symbol of piece.
 
 CREATE OR REPLACE FUNCTION pretty(piecesquare[])
 RETURNS text[] AS $$
-    select array_agg(pretty) from (select pretty(unnest($1))) t
+    SELECT array_agg(pretty) from (SELECT pretty(unnest($1))) t
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(piecesquare[]) IS '
 Returns unicode chess symbol of pieces.
@@ -755,27 +755,30 @@ same move number to check for duplicate positions.  To create a unique index or
 primary key with the move number you could: `CREATE INDEX idx_board ON
 position (theboard, move(theboard)); `.
 
-#### Notes on implementation
+#### Notes on Implementation
 
 Postgres requires a 4 byte size field (vl_len) to be the first member of a struct for
 variable size data types. On a 64 bit machine this will create a 4 byte
-alinment hole https://www.geeksforgeeks.org/structure-member-alignment-padding-and-data-packing/.
+[alignment hole](https://www.geeksforgeeks.org/structure-member-alignment-padding-and-data-packing/).
 This is where board state such as en passant, move number, half move clock, etc. are kept.
 Then an 8 byte bitboard or bitmap keeps the piece occupancy
-https://codegolf.stackexchange.com/questions/19397/smallest-chess-board-compression 
-(second answer). The last field keeps the variable size piece nibbles.
+\([see the second here](https://codegolf.stackexchange.com/questions/19397/smallest-chess-board-compression). 
+The last field keeps the variable size piece nibbles.
 
-But if you look at the code golf discusion you will see that huffman encoding
+But if you look at the code golf discussion you will see that 
+[Huffman encoding](https://www.geeksforgeeks.org/greedy-algorithms-set-3-huffman-coding/)
 would lead to smaller sizes. With the smallest design listed at 160 bits or 20
 bytes. That does not account for move and halfmove clock which need another 15
 bits. We could have overloaded castling and en passant into the piece encoding to save
 16 bits. piece count could be partially deduced from vl_len but we wont know if the last
 nible is empty or not since the 192 bit solution uses all symbols. And all solutions seem
-to ignore that you will need an EOF marker to see if your in padding or not
-https://www2.cs.duke.edu/csed/poop/huff/info/ so all solutions need to add at least 4 bits.
+to ignore that you will need an EOF marker to see if your in 
+[padding] (https://www2.cs.duke.edu/csed/poop/huff/info/) or not. 
+so all solutions need to add at least 4 bits.
 
-Something to keep in mind also is that Postgres stores info on each row
-https://stackoverflow.com/questions/13570613/making-sense-of-postgres-row-sizes
+
+Something to keep in mind also is that Postgres stores info on
+[each row](https://stackoverflow.com/questions/13570613/making-sense-of-postgres-row-sizes)
 of 23 btyes! So in Postgres the bare minimum *row size* would be:
 
 ```
@@ -801,7 +804,7 @@ for all the pieces or O(1) for querying certain squares.
 
 For simplicity and faster operations I think this is a pretty good way to
 do it. lichess.org is producing 20 million games per month that you can
-download https://database.lichess.org/. If an average game is about 30
+[download](https://database.lichess.org/). If an average game is about 30
 moves with 60 positions for black and white moves then it would take
 about 3k to store one game or 3GB per million games. Then a years worth of 
 games would take 720 GB. Which are tractable numbers.
@@ -831,18 +834,20 @@ RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION pieces(board)
 RETURNS piecesquare[] AS $$
-    select "_pieces"($1)::piecesquare[]
+    SELECT "_pieces"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pieces(board) IS 
 'Returns an array of piecesquares occupying the board in fen order.
-The sort order is in fourth quadrant where  a8 is 0. The pieces family of functions all have the same sort behavior except for pieces_so.
+The sort order is in fourth
+[quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
+where  a8 is 0. The pieces family of functions all have the same sort behavior except for pieces_so.
 https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
 
 Search for pieces occupying a1 or are white kings:
 ```sql
     SELECT ps FROM 
     (
-       select unnest(pieces(''rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR''::board)) ps
+       SELECT unnest(pieces(''rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR''::board)) ps
     ) t 
    WHERE ps::square=''a1'' 
    OR ps::cpiece=''K'';
@@ -863,28 +868,28 @@ COMMENT ON FUNCTION pieces(board, square) IS
 
 CREATE OR REPLACE FUNCTION pieces(board, side)
 RETURNS piecesquare[] AS $$
-    select "_pieces"($1, $2)::piecesquare[]
+    SELECT "_pieces"($1, $2)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pieces(board, side) IS 
 'Returns an array of piecesquares for the side.';
 
 CREATE OR REPLACE FUNCTION pieces(board, cpiece)
 RETURNS piecesquare[] AS $$
-    select "_pieces_cpiece"($1, $2)::piecesquare[]
+    SELECT "_pieces_cpiece"($1, $2)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pieces(board, cpiece) IS 
 'Returns an array of piecesquares for the colored pieces that are present.';
 
 CREATE OR REPLACE FUNCTION pieces(board, piece)
 RETURNS piecesquare[] AS $$
-    select "_pieces_piece"($1, $2)::piecesquare[]
+    SELECT "_pieces_piece"($1, $2)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pieces(board, piece) IS 
 'Returns an array of piecesquares for the pieces that are present.';
 
 CREATE OR REPLACE FUNCTION pieces(board, square[])
 RETURNS piecesquare[] AS $$
-    select "_pieces_squares"($1, $2)::piecesquare[]
+    SELECT "_pieces_squares"($1, $2)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pieces(board, square[]) IS 
 'Returns an array of piecesquares given the squares that are occupied.';
@@ -893,33 +898,35 @@ CREATE CAST (board as piecesquare[]) WITH FUNCTION pieces(board);
 
 CREATE OR REPLACE FUNCTION pieces_so(board) -- piecesquare order
 RETURNS piecesquare[] AS $$
-    select 
+    SELECT 
         array_agg((p::text || s::text)::piecesquare)  
     from 
     (
-        select pieces::piecesquare s , pieces::cpiece p from 
+        SELECT pieces::piecesquare s , pieces::cpiece p from 
         (
-            select unnest(pieces($1)) pieces
+            SELECT unnest(pieces($1)) pieces
         ) tt order by s
     ) ttt ;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pieces_so(board) IS 
 'Returns an array of piecesquares in square order [sql].
-The sort order is in first quadrant where a1 is 0.
+The sort order is in first
+[quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
+where a1 is 0.
 https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)';
 
 CREATE FUNCTION _attacks(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 CREATE OR REPLACE FUNCTION attacks(board)
 RETURNS piecesquare[] AS $$
-    select "_attacks"($1)::piecesquare[]
+    SELECT "_attacks"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE FUNCTION _mobility(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 CREATE OR REPLACE FUNCTION mobility(board)
 RETURNS piecesquare[] AS $$
-    select "_mobility"($1)::piecesquare[]
+    SELECT "_mobility"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 /*}}}*/
 /*---------------------------------------/
@@ -999,11 +1006,11 @@ RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION bitboard(board, cpiece)
 RETURNS bit(64) AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION bitboard(board, cpiece) IS 
-'Returns a 64 bit string with 1''s representing the occupancy of the piece.';
+'Returns a 64 bit string with 1''s representing the occupancy of the piece in fen order.';
 
 CREATE FUNCTION bitboard_array(board, cpiece)
 RETURNS bit[] AS $$
-    select string_to_array(bitboard($1, $2)::text, NULL)::bit[]
+    SELECT string_to_array(bitboard($1, $2)::text, NULL)::bit[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION bitboard_array(board, cpiece) IS 
 'Returns an array of size 64 with 1''s representing the occupancy of the piece in fen order. (sql)';
@@ -1297,7 +1304,7 @@ CREATE CAST (adiagonal AS int4) WITH FUNCTION char_to_int(adiagonal);
 /*{{{*/
 CREATE OR REPLACE FUNCTION pretty(text, uni bool default false, showfen bool default false)
 RETURNS text AS $$
-    select replace(replace(replace(replace(replace(replace(replace(replace(
+    SELECT replace(replace(replace(replace(replace(replace(replace(replace(
             translate
             (
                  split_part($1, ' ', 1)
@@ -1334,7 +1341,7 @@ if 3 arg is true add the fen string at the bottom of the board
 
 CREATE OR REPLACE FUNCTION pretty(board, uni bool default false, showfen bool default true)
 RETURNS text AS $$
-select pretty($1::text, $2, $3)
+SELECT pretty($1::text, $2, $3)
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(board, bool, bool) IS '
 Converts fen string to a printable board. [sql]
@@ -1345,12 +1352,12 @@ if 3 arg is true add the fen string at the bottom of the board
 
 CREATE OR REPLACE FUNCTION invert(board)
 RETURNS text AS $$
-    select translate($1::text, 'KQRBNPkqrbnpwb', 'kqrbnpKQRBNPbw')
+    SELECT translate($1::text, 'KQRBNPkqrbnpwb', 'kqrbnpKQRBNPbw')
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION squares()
 RETURNS setof square AS $$
-     select (56 - (i/8)*8 + (i%8))::square  from generate_series(0, 63) as i;
+     SELECT (56 - (i/8)*8 + (i%8))::square  from generate_series(0, 63) as i;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(board, bool, bool) IS '
 Generates a set of squares in fen order.';
@@ -1366,9 +1373,9 @@ $$ LANGUAGE SQL STRICT IMMUTABLE;
 CREATE OR REPLACE FUNCTION white(piece[])
 RETURNS cpiece[] AS
 $$
-    select array_agg(white) from 
+    SELECT array_agg(white) from 
     (
-        select white(unnest) from (select unnest($1))t 
+        SELECT white(unnest) from (SELECT unnest($1))t 
     )tt
 
 $$ LANGUAGE SQL STRICT IMMUTABLE;
@@ -1383,16 +1390,16 @@ $$ LANGUAGE SQL STRICT IMMUTABLE;
 CREATE OR REPLACE FUNCTION black(piece[])
 RETURNS cpiece[] AS
 $$
-    select array_agg(black) from 
+    SELECT array_agg(black) from 
     (
-        select black(unnest) from (select unnest($1))t 
+        SELECT black(unnest) from (SELECT unnest($1))t 
     )tt
 
 $$ LANGUAGE SQL STRICT IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION bitarray(bit(64))
 RETURNS bit[] AS $$
-    select string_to_array(($1)::text, NULL)::bit[]
+    SELECT string_to_array(($1)::text, NULL)::bit[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
