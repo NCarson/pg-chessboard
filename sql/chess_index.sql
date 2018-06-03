@@ -27,7 +27,7 @@ CREATE TYPE side(
     PASSEDBYVALUE         
 );
 COMMENT ON TYPE side IS '
-**The side TO GO OR the side OF a piece**.
+The side TO GO OR the side OF a piece.
 
 Input format is ''w'' or ''b''. Uses 1 byte of storage
 Supports =, <>, and hash operations.
@@ -205,8 +205,8 @@ CREATE TYPE square(
 	PASSEDBYVALUE         
 );
 COMMENT ON TYPE square IS '
-**A square on the board.**
-as 
+A square on the board.
+
 The sort order is in fourth quadrant where a8 is 0.
 https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
 
@@ -338,7 +338,7 @@ CREATE TYPE piece(
 	PASSEDBYVALUE         
 );
 COMMENT ON TYPE piece IS '
-**Represents a chess piece without color.**
+Represents a chess piece without color.
 
 Input format is ''P'' or ''p'' (case does not matter).
 Uses 1 byte of storage. 
@@ -413,7 +413,7 @@ CREATE TYPE cpiece(
 	PASSEDBYVALUE         
 );
 COMMENT ON TYPE cpiece IS '
-**Represents a chess piece with color.**
+Represents a chess piece with color.
 
 Input format is ''P'' or ''p'' (capitalized pieces are white).
 Uses 1 byte of storage. 
@@ -493,7 +493,7 @@ CREATE TYPE pfilter(
     ,STORAGE        = PLAIN
 );
 COMMENT ON TYPE cpiece IS '
-**String of pieces to filter out pieces.**
+String of pieces to filter out pieces.
 
 Uses 6 byte of storage. 
 ';
@@ -518,7 +518,7 @@ CREATE TYPE piecesquare(
 	,PASSEDBYVALUE         
 );
 COMMENT ON TYPE piecesquare IS '
-**A colored piece occuping a square on the board.**
+A colored piece occuping a square on the board.
 
 Uses 2 bytes of storage. Input format is ''Ke4''.
 Supports =, <>, <, >, >=, <=, hash operations and btree operations.
@@ -531,14 +531,14 @@ CREATE FUNCTION square(piecesquare)
 RETURNS square AS '$libdir/chess_index', 'piecesquare_square' LANGUAGE C IMMUTABLE STRICT;
 CREATE CAST (piecesquare as square) WITH FUNCTION square(piecesquare);
 COMMENT ON FUNCTION square(piecesquare) IS '
-**Casts piecesquare to square.**
+Casts piecesquare to square.
 ';
 
 CREATE FUNCTION cpiece(piecesquare)
 RETURNS cpiece AS '$libdir/chess_index', 'piecesquare_cpiece' LANGUAGE C IMMUTABLE STRICT;
 CREATE CAST (piecesquare as cpiece) WITH FUNCTION cpiece(piecesquare);
 COMMENT ON FUNCTION cpiece(piecesquare) IS '
-**Casts piecesquare to cpiece.**
+Casts piecesquare to cpiece.
 ';
 
 CREATE OR REPLACE FUNCTION pretty(piecesquare)
@@ -546,7 +546,7 @@ RETURNS text AS $$
     select pretty($1::cpiece) || $1::square::text
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(piecesquare) IS '
-**Returns unicode chess symbol of piece.**
+Returns unicode chess symbol of piece.
 ';
 
 CREATE OR REPLACE FUNCTION pretty(piecesquare[])
@@ -554,7 +554,7 @@ RETURNS text[] AS $$
     select array_agg(pretty) from (select pretty(unnest($1))) t
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(piecesquare[]) IS '
-**Returns unicode chess symbol of pieces.**
+Returns unicode chess symbol of pieces.
 ';
 
 CREATE FUNCTION piecesquare_eq(piecesquare, piecesquare)
@@ -668,7 +668,7 @@ CREATE TYPE board(
     STORAGE        = PLAIN
 );
 COMMENT ON TYPE board IS '
-**Represents a chess position.**
+Represents a chess position.
 
 A fast and space efficient chess board type
 There three ways to initialize the board:
@@ -738,7 +738,7 @@ While 32 bytes data size + 24 tuple header = 56 bytes so about 10%
 reduction in storage for maximum sized boards.
 
 Also keep in mind operations on the pieces would require
-O(n\\*log(n)) to decompress the code. While this implimentation is O(n)
+O(n\*log(n)) to decompress the code. While this implimentation is O(n)
 for all the pieces or O(1) for querying certain squares.
 
 For simplicity and faster operations I think this is a pretty good way to
@@ -1082,7 +1082,7 @@ CREATE TYPE cfile(
     PASSEDBYVALUE           -- pass data by value rather than by reference
 );
 COMMENT ON TYPE cfile IS '
-**Represents a chess board file a-h.**
+Represents a chess board file a-h.
 
 Input format is ''a''.
 Uses 1 byte of storage.
@@ -1126,7 +1126,7 @@ CREATE TYPE rank(
     PASSEDBYVALUE           -- pass data by value rather than by reference
 );
 COMMENT ON TYPE "rank" IS '
-**Represents a chess rank file 1-8.**
+Represents a chess rank file 1-8.
 
 Input format is ''1''.
 Uses 1 byte of storage.
@@ -1170,7 +1170,7 @@ CREATE TYPE diagonal(
     PASSEDBYVALUE           -- pass data by value rather than by reference
 );
 COMMENT ON TYPE diagonal IS '
-**Represents a diagonal on the board.**
+Represents a diagonal on the board.
 
 Uses 1 byte of storage.
 TODO
@@ -1213,7 +1213,7 @@ CREATE TYPE adiagonal(
     PASSEDBYVALUE           -- pass data by value rather than by reference
 );
 COMMENT ON TYPE adiagonal IS '
-**Represents a anti-diagonal on the board.**
+Represents a anti-diagonal on the board.
 
 https://en.wikipedia.org/wiki/Anti-diagonal_matrix
 Uses 1 byte of storage.
@@ -1268,7 +1268,7 @@ RETURNS text AS $$
     ;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(text, bool, bool) IS '
-**Converts fen string to a printable board.** (sql)
+Converts fen string to a printable board. [sql]
 
 if 2 arg is true then use unicode
 if 3 arg is true add the fen string at the bottom of the board
@@ -1279,7 +1279,7 @@ RETURNS text AS $$
 select pretty($1::text, $2, $3)
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(board, bool, bool) IS '
-**Converts fen string to a printable board.** (sql)
+Converts fen string to a printable board. [sql]
 
 if 2 arg is true then use unicode
 if 3 arg is true add the fen string at the bottom of the board
@@ -1295,7 +1295,7 @@ RETURNS setof square AS $$
      select (56 - (i/8)*8 + (i%8))::square  from generate_series(0, 63) as i;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(board, bool, bool) IS '
-**Generates a set of squares in fen order.**';
+Generates a set of squares in fen order.';
 
 
 CREATE OR REPLACE FUNCTION white(piece)

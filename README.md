@@ -8,7 +8,7 @@ select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)
 ```
 ```
                    pretty                    
- \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+ --------------------------------------------
  rnbqkbnr                                   +
  pppppppp                                   +
  ........                                   +
@@ -27,7 +27,7 @@ select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)
 #### adiagonal
 
 
-**Represents a anti-diagonal on the board.**
+Represents a anti-diagonal on the board.
 
 https://en.wikipedia.org/wiki/Anti-diagonal_matrix
 Uses 1 byte of storage.
@@ -37,7 +37,7 @@ TODO
 #### board
 
 
-**Represents a chess position.**
+Represents a chess position.
 
 A fast and space efficient chess board type
 There three ways to initialize the board:
@@ -107,7 +107,7 @@ While 32 bytes data size + 24 tuple header = 56 bytes so about 10%
 reduction in storage for maximum sized boards.
 
 Also keep in mind operations on the pieces would require
-O(n\\*log(n)) to decompress the code. While this implimentation is O(n)
+O(n\*log(n)) to decompress the code. While this implimentation is O(n)
 for all the pieces or O(1) for querying certain squares.
 
 For simplicity and faster operations I think this is a pretty good way to
@@ -122,7 +122,7 @@ games would take 720 GB. Which are tractable numbers.
 #### cfile
 
 
-**Represents a chess board file a-h.**
+Represents a chess board file a-h.
 
 Input format is 'a'.
 Uses 1 byte of storage.
@@ -132,7 +132,7 @@ Can be cast to an int where a=0.
 #### cpiece
 
 
-**String of pieces to filter out pieces.**
+String of pieces to filter out pieces.
 
 Uses 6 byte of storage. 
 
@@ -140,7 +140,7 @@ Uses 6 byte of storage.
 #### diagonal
 
 
-**Represents a diagonal on the board.**
+Represents a diagonal on the board.
 
 Uses 1 byte of storage.
 TODO
@@ -153,7 +153,7 @@ TODO
 #### piece
 
 
-**Represents a chess piece without color.**
+Represents a chess piece without color.
 
 Input format is 'P' or 'p' (case does not matter).
 Uses 1 byte of storage. 
@@ -163,7 +163,7 @@ Supports =, <>, and hash operations.
 #### piecesquare
 
 
-**A colored piece occuping a square on the board.**
+A colored piece occuping a square on the board.
 
 Uses 2 bytes of storage. Input format is 'Ke4'.
 Supports =, <>, <, >, >=, <=, hash operations and btree operations.
@@ -181,7 +181,7 @@ Supports =, <>, and hash operations.
 #### rank
 
 
-**Represents a chess rank file 1-8.**
+Represents a chess rank file 1-8.
 
 Input format is '1'.
 Uses 1 byte of storage.
@@ -191,7 +191,7 @@ Can be cast to an int where 1=0.
 #### side
 
 
-**The side TO GO OR the side OF a piece**.
+The side TO GO OR the side OF a piece.
 
 Input format is 'w' or 'b'. Uses 1 byte of storage
 Supports =, <>, and hash operations.
@@ -200,8 +200,8 @@ Supports =, <>, and hash operations.
 #### square
 
 
-**A square on the board.**
-as 
+A square on the board.
+
 The sort order is in fourth quadrant where a8 is 0.
 https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
 
@@ -229,7 +229,7 @@ Returns a board given the pieces and the footer part of the fen string.
 #### cpiece(piecesquare) -> cpiece
 
 
-**Casts piecesquare to cpiece.**
+Casts piecesquare to cpiece.
 
 
 #### footer(board) -> cstring
@@ -328,24 +328,24 @@ https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
 #### pretty(board, uni boolean DEFAULT false, showfen boolean DEFAULT true) -> text
 
 
-**Generates a set of squares in fen order.**
+Generates a set of squares in fen order.
 
 #### pretty(piecesquare) -> text
 
 
-**Returns unicode chess symbol of piece.**
+Returns unicode chess symbol of piece.
 
 
 #### pretty(piecesquare[]) -> text[]
 
 
-**Returns unicode chess symbol of pieces.**
+Returns unicode chess symbol of pieces.
 
 
 #### pretty(text, uni boolean DEFAULT false, showfen boolean DEFAULT false) -> text
 
 
-**Converts fen string to a printable board.** (sql)
+Converts fen string to a printable board. [sql]
 
 if 2 arg is true then use unicode
 if 3 arg is true add the fen string at the bottom of the board
@@ -363,5 +363,5 @@ Returns the side which has the go.
 #### square(piecesquare) -> square
 
 
-**Casts piecesquare to square.**
+Casts piecesquare to square.
 
