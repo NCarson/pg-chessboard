@@ -28,6 +28,8 @@ done
 make
 sudo make uninstall
 sudo make install
+#psql -dchess_test -c 'drop extension chess_index cascade'
+#psql -dchess_test -f sql/chess_index.sql
 
 if [[ "$CHECK" -eq 1 ]]; then
     make installcheck;

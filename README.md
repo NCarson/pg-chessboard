@@ -22,7 +22,7 @@ select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)
 ```
 
 pg-chessboard is an extension for Postgres. https://github.com/theory/pgtap has
-good general instrictions on how to installl an extension for Postgres. It does 
+good general instructions on how to install an extension for Postgres. It does 
 not generate moves or play chess \(see [pgchess](https://pgxn.org/dist/pgchess/0.1.0/) for
 and extension that does play chess\).
 
@@ -41,8 +41,7 @@ FROM (
 	SELECT unnest(pieces('8/8/8/8/8/8/8/5NnR'::board)) ps
 )t ;
 ```
-```
- square | cpiece | piece 
+``` square | cpiece | piece 
 --------+--------+-------
  f1     | N      | N
  g1     | n      | N
@@ -103,18 +102,18 @@ variable size data types. On a 64 bit machine this will create a 4 byte
 [alignment hole](https://www.geeksforgeeks.org/structure-member-alignment-padding-and-data-packing/).
 This is where board state such as en passant, move number, half move clock, etc. are kept.
 Then an 8 byte bitboard or bitmap keeps the piece occupancy
-\([see the second here](https://codegolf.stackexchange.com/questions/19397/smallest-chess-board-compression). 
+\([see the second answer here](https://codegolf.stackexchange.com/questions/19397/smallest-chess-board-compression). 
 The last field keeps the variable size piece nibbles.
 
 But if you look at the code golf discussion you will see that 
-[Huffman encoding](https://www.geeksforgeeks.org/greedy-algorithms-set-3-huffman-coding/)
+[Huffman Encoding](https://www.geeksforgeeks.org/greedy-algorithms-set-3-huffman-coding/)
 would lead to smaller sizes. With the smallest design listed at 160 bits or 20
 bytes. That does not account for move and halfmove clock which need another 15
 bits. We could have overloaded castling and en passant into the piece encoding to save
 16 bits. piece count could be partially deduced from vl_len but we wont know if the last
 nible is empty or not since the 192 bit solution uses all symbols. And all solutions seem
 to ignore that you will need an EOF marker to see if your in 
-[padding] (https://www2.cs.duke.edu/csed/poop/huff/info/) or not. 
+[padding](https://www2.cs.duke.edu/csed/poop/huff/info/) or not. 
 so all solutions need to add at least 4 bits.
 
 
@@ -262,6 +261,7 @@ Input format is 'e4'.
 Uses 1 byte of storage. Squares can be cast to chars and ints to work with the raw
 number.  Supports =, <>, <, >, >=, <=, hash operations and btree operations.
 
+Select pieces occupying square h1:
 ```sql
 SELECT pieces('8/8/8/8/8/8/8/6Pp'::board, 'h1'::square);
 ```
@@ -273,28 +273,6 @@ SELECT pieces('8/8/8/8/8/8/8/6Pp'::board, 'h1'::square);
 ```
 
 ## Functions
-### bitboard(board, cpiece) -> bit
-
-Returns a 64 bit string with 1's representing the occupancy of the piece in fen order.
-
-### bitboard_array(board, cpiece) -> bit[]
-
-Returns an array of size 64 with 1's representing the occupancy of the piece in fen order. (sql)
-
-### board(piecesquare[]) -> board
-
-Returns a board given the pieces with initial state.
-
-### board(piecesquare[], text) -> board
-
-Returns a board given the pieces and the footer part of the fen string.
-
-### cpiece(piecesquare) -> cpiece
-
-
-Casts piecesquare to cpiece.
-
-
 ### footer(board) -> cstring
 
 Returns the the fen string after the first board field.
@@ -322,29 +300,12 @@ It will be zero if it was not set in the fen
 
 Returns aumount of pieces on the board.
 
-### pcount(board, cpiece) -> integer
-
-Returns aumount of pieces on the board of a certain type cpiece.
-
-### pcount(board, piece) -> integer
-
-Returns aumount of pieces on the board of a certain type piece.
-
-### pfilter(board, pfilter) -> board
-
-Returns a board given the pfilter.
-
-### pieceindex(board, side) -> pindex
-
-Returns the pieceindex given a side.
-
 ### pieces(board) -> piecesquare[]
 
 Returns an array of piecesquares occupying the board in fen order.
 The sort order is in fourth
 [quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
 where  a8 is 0. The pieces family of functions all have the same sort behavior except for pieces_so.
-https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
 
 Search for pieces occupying a1 or are white kings:
 ```sql
@@ -364,13 +325,54 @@ Search for pieces occupying a1 or are white kings:
 ```
 
 
+### pieces_so(board) -> piecesquare[]
+
+Returns an array of piecesquares in square order [sql].
+The sort order is in first
+[quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
+where a1 is 0.
+
+
+### score(board) -> integer
+
+Returns the sum of the piece values.
+Sums the piece values using {1,3,3,5,9} for {P,B,N,R,Q} respectivly with negative values for the black pieces.
+
+### side(board) -> side
+
+Returns the side which has the go.
+
+### bitboard(board, cpiece) -> bit
+
+Returns a 64 bit string with 1's representing the occupancy of the piece in fen order.
+
+### bitboard_array(board, cpiece) -> bit[]
+
+Returns an array of size 64 with 1's representing the occupancy of the piece in fen order. (sql)
+
+### pcount(board, cpiece) -> integer
+
+Returns aumount of pieces on the board of a certain type cpiece.
+
 ### pieces(board, cpiece) -> piecesquare[]
 
 Returns an array of piecesquares for the colored pieces that are present.
 
+### pfilter(board, pfilter) -> board
+
+Returns a board given the pfilter.
+
+### pcount(board, piece) -> integer
+
+Returns aumount of pieces on the board of a certain type piece.
+
 ### pieces(board, piece) -> piecesquare[]
 
 Returns an array of piecesquares for the pieces that are present.
+
+### pieceindex(board, side) -> pindex
+
+Returns the pieceindex given a side.
 
 ### pieces(board, side) -> piecesquare[]
 
@@ -384,14 +386,6 @@ Returns a piecesquare given the square or null if there is no piece.
 
 Returns an array of piecesquares given the squares that are occupied.
 
-### pieces_so(board) -> piecesquare[]
-
-Returns an array of piecesquares in square order [sql].
-The sort order is in first
-[quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
-where a1 is 0.
-https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
-
 ### pretty(board, uni boolean DEFAULT false, showfen boolean DEFAULT true) -> text
 
 
@@ -402,53 +396,30 @@ Generates a set of squares in fen order.
 
 Returns the unicode character of the piece.
 
+```sql
+SELECT pretty('p'::cpiece);
+```
+```
+ pretty 
+--------
+ ♟
+(1 row)
+```
 
-### pretty(piece) -> text
-
-
-Returns the unicode character of the piece.
-
-
-### pretty(piecesquare) -> text
-
-
-Returns unicode chess symbol of piece.
-
-
-### pretty(piecesquare[]) -> text[]
-
-
-Returns unicode chess symbol of pieces.
-
-
-### pretty(text, uni boolean DEFAULT false, showfen boolean DEFAULT false) -> text
-
-
-Converts fen string to a printable board. [sql]
-
-if 2 arg is true then use unicode
-if 3 arg is true add the fen string at the bottom of the board
-
-
-### score(board) -> integer
-
-Returns the sum of the piece values.
-Sums the piece values using {1,3,3,5,9} for {P,B,N,R,Q} respectivly with negative values for the black pieces.
-
-### side(board) -> side
-
-Returns the side which has the go.
 
 ### side(cpiece) -> side
 
 
 Returns the side type of the piece.
-
-
-### square(piecesquare) -> square
-
-
-Casts piecesquare to square.
+```sql
+SELECT side('p'::cpiece);
+```
+```
+ side 
+---------
+ b
+(1 row)
+```
 
 
 ### value(cpiece) -> integer
@@ -456,7 +427,33 @@ Casts piecesquare to square.
 
 Returns the scoring value of the colored piece.
 
-values = {1,3,3,4,9,0} for {p,n,b,r,q,k}
+Black pieces will be have negative values.
+
+values = {1,3,3,4,9,0} for {P,N,B,R,Q,K}
+and      {1,3,3,4,9,0}\*-1 for {p,n,b,r,q,k}
+
+```sql
+ SELECT value('p'::cpiece);
+```
+```
+ value 
+------------
+    -1
+    (1 row)
+```
+
+
+### pretty(piece) -> text
+
+
+Returns the unicode character of the piece.
+
+```sql
+SELECT pretty('p'::piece);
+ pretty 
+----------
+ ♟
+(1 row)
 
 
 ### value(piece) -> integer
@@ -465,4 +462,65 @@ values = {1,3,3,4,9,0} for {p,n,b,r,q,k}
 Returns the scoring value of the piece.
 
 values = {1,3,3,4,9,0} for {p,n,b,r,q,k}
+
+```sql
+SELECT value('p'::piece);
+```
+```
+ value 
+---------------------
+     1
+    (1 row)
+```
+
+
+### cpiece(piecesquare) -> cpiece
+
+
+Casts piecesquare to cpiece.
+
+
+### pretty(piecesquare) -> text
+
+
+Returns unicode chess symbol of piece. [sql]
+
+```sql
+ SELECT pretty('pa2'::piecesquare);
+```
+```
+ pretty 
+--------
+ ♟a2
+(1 row)
+```
+
+
+### square(piecesquare) -> square
+
+
+Casts piecesquare to square.
+
+
+### board(piecesquare[]) -> board
+
+Returns a board given the pieces with initial state.
+
+### pretty(piecesquare[]) -> text[]
+
+
+Returns unicode chess symbol of pieces. [sql]
+
+
+### board(piecesquare[], text) -> board
+
+Returns a board given the pieces and the footer part of the fen string.
+
+### pretty(text, uni boolean DEFAULT false, showfen boolean DEFAULT false) -> text
+
+
+Converts fen string to a printable board. [sql]
+
+If uni is true then use unicode.
+If showfen is true add the fen string at the bottom of the board.
 

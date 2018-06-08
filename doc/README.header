@@ -22,7 +22,7 @@ select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)
 ```
 
 pg-chessboard is an extension for Postgres. https://github.com/theory/pgtap has
-good general instrictions on how to installl an extension for Postgres. It does 
+good general instructions on how to install an extension for Postgres. It does 
 not generate moves or play chess \(see [pgchess](https://pgxn.org/dist/pgchess/0.1.0/) for
 and extension that does play chess\).
 
@@ -41,8 +41,7 @@ FROM (
 	SELECT unnest(pieces('8/8/8/8/8/8/8/5NnR'::board)) ps
 )t ;
 ```
-```
- square | cpiece | piece 
+``` square | cpiece | piece 
 --------+--------+-------
  f1     | N      | N
  g1     | n      | N

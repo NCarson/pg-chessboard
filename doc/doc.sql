@@ -41,5 +41,5 @@ WHERE pg_catalog.pg_function_is_visible(p.oid)
       AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
     and pg_catalog.obj_description(p.oid) is not null
-ORDER BY 2, 4
+ORDER BY 4, 2
 ) t;

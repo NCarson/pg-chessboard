@@ -3,7 +3,9 @@
 
 --\echo Use "CREATE EXTENSION chess_index" to load this file. \quit
 
---\set client_min_messages=DEBUG5;
+--set client_min_messages=DEBUG5;
+
+--\set ON_ERROR_STOP;
 
 
 /****************************************************************************
@@ -223,6 +225,7 @@ Input format is ''e4''.
 Uses 1 byte of storage. Squares can be cast to chars and ints to work with the raw
 number.  Supports =, <>, <, >, >=, <=, hash operations and btree operations.
 
+Select pieces occupying square h1:
 ```sql
 SELECT pieces(''8/8/8/8/8/8/8/6Pp''::board, ''h1''::square);
 ```
@@ -379,6 +382,16 @@ COMMENT ON FUNCTION value(piece) IS '
 Returns the scoring value of the piece.
 
 values = {1,3,3,4,9,0} for {p,n,b,r,q,k}
+
+```sql
+SELECT value(''p''::piece);
+```
+```
+ value 
+---------------------
+     1
+    (1 row)
+```
 ';
 
 CREATE OR REPLACE FUNCTION pretty(piece)
@@ -387,6 +400,13 @@ RETURNS text AS $$
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(piece) IS '
 Returns the unicode character of the piece.
+
+```sql
+SELECT pretty(''p''::piece);
+ pretty 
+----------
+ ♟
+(1 row)
 ';
 
 
@@ -471,13 +491,35 @@ RETURNS int AS '$libdir/chess_index', 'cpiece_value' LANGUAGE C IMMUTABLE STRICT
 COMMENT ON FUNCTION value(cpiece) IS '
 Returns the scoring value of the colored piece.
 
-values = {1,3,3,4,9,0} for {p,n,b,r,q,k}
+Black pieces will be have negative values.
+
+values = {1,3,3,4,9,0} for {P,N,B,R,Q,K}
+and      {1,3,3,4,9,0}\*-1 for {p,n,b,r,q,k}
+
+```sql
+ SELECT value(''p''::cpiece);
+```
+```
+ value 
+------------
+    -1
+    (1 row)
+```
 ';
 
 CREATE FUNCTION side(cpiece)
 RETURNS side AS '$libdir/chess_index', 'cpiece_side' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION side(cpiece) IS '
 Returns the side type of the piece.
+```sql
+SELECT side(''p''::cpiece);
+```
+```
+ side 
+---------
+ b
+(1 row)
+```
 ';
 
 CREATE FUNCTION piece(cpiece)
@@ -490,6 +532,16 @@ RETURNS text AS $$
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(cpiece) IS '
 Returns the unicode character of the piece.
+
+```sql
+SELECT pretty(''p''::cpiece);
+```
+```
+ pretty 
+--------
+ ♟
+(1 row)
+```
 ';
 
 
@@ -604,7 +656,17 @@ RETURNS text AS $$
     SELECT pretty($1::cpiece) || $1::square::text
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(piecesquare) IS '
-Returns unicode chess symbol of piece.
+Returns unicode chess symbol of piece. [sql]
+
+```sql
+ SELECT pretty(''pa2''::piecesquare);
+```
+```
+ pretty 
+--------
+ ♟a2
+(1 row)
+```
 ';
 
 CREATE OR REPLACE FUNCTION pretty(piecesquare[])
@@ -612,7 +674,7 @@ RETURNS text[] AS $$
     SELECT array_agg(pretty) from (SELECT pretty(unnest($1))) t
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(piecesquare[]) IS '
-Returns unicode chess symbol of pieces.
+Returns unicode chess symbol of pieces. [sql]
 ';
 
 CREATE FUNCTION piecesquare_eq(piecesquare, piecesquare)
@@ -762,18 +824,18 @@ variable size data types. On a 64 bit machine this will create a 4 byte
 [alignment hole](https://www.geeksforgeeks.org/structure-member-alignment-padding-and-data-packing/).
 This is where board state such as en passant, move number, half move clock, etc. are kept.
 Then an 8 byte bitboard or bitmap keeps the piece occupancy
-\([see the second here](https://codegolf.stackexchange.com/questions/19397/smallest-chess-board-compression). 
+\([see the second answer here](https://codegolf.stackexchange.com/questions/19397/smallest-chess-board-compression). 
 The last field keeps the variable size piece nibbles.
 
 But if you look at the code golf discussion you will see that 
-[Huffman encoding](https://www.geeksforgeeks.org/greedy-algorithms-set-3-huffman-coding/)
+[Huffman Encoding](https://www.geeksforgeeks.org/greedy-algorithms-set-3-huffman-coding/)
 would lead to smaller sizes. With the smallest design listed at 160 bits or 20
 bytes. That does not account for move and halfmove clock which need another 15
 bits. We could have overloaded castling and en passant into the piece encoding to save
 16 bits. piece count could be partially deduced from vl_len but we wont know if the last
 nible is empty or not since the 192 bit solution uses all symbols. And all solutions seem
 to ignore that you will need an EOF marker to see if your in 
-[padding] (https://www2.cs.duke.edu/csed/poop/huff/info/) or not. 
+[padding](https://www2.cs.duke.edu/csed/poop/huff/info/) or not. 
 so all solutions need to add at least 4 bits.
 
 
@@ -811,7 +873,6 @@ games would take 720 GB. Which are tractable numbers.
 
 ';
 
-;
 /*---------------------------------------/
 /  pieces functions                      /
 /---------------------------------------*/
@@ -841,7 +902,6 @@ COMMENT ON FUNCTION pieces(board) IS
 The sort order is in fourth
 [quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
 where  a8 is 0. The pieces family of functions all have the same sort behavior except for pieces_so.
-https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)
 
 Search for pieces occupying a1 or are white kings:
 ```sql
@@ -913,7 +973,7 @@ COMMENT ON FUNCTION pieces_so(board) IS
 The sort order is in first
 [quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
 where a1 is 0.
-https://en.wikipedia.org/wiki/Quadrant_(plane_geometry)';
+';
 
 CREATE FUNCTION _attacks(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
@@ -929,6 +989,7 @@ RETURNS piecesquare[] AS $$
     SELECT "_mobility"($1)::piecesquare[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 /*}}}*/
+
 /*---------------------------------------/
 /  functions                             /
 /---------------------------------------*/
@@ -1241,7 +1302,6 @@ Uses 1 byte of storage.
 TODO
 ';
 
-
 CREATE FUNCTION square_to_diagonal(square)
 RETURNS diagonal
 AS '$libdir/chess_index'
@@ -1285,7 +1345,6 @@ Uses 1 byte of storage.
 TODO
 ';
 
-
 CREATE FUNCTION square_to_adiagonal(square)
 RETURNS adiagonal
 AS '$libdir/chess_index'
@@ -1324,19 +1383,19 @@ RETURNS text AS $$
             , '1', case when not $2 then '.' else U&'.\200A' end) 
 
         || '  ' || split_part($1, ' ', 2)
-        || '  '  || split_part($1, ' ', 3)
-        || '  '  || split_part($1, ' ', 4)
-        || '  '  || split_part($1, ' ', 5)
+        || '  ' || split_part($1, ' ', 3)
+        || '  ' || split_part($1, ' ', 4)
+        || '  ' || split_part($1, ' ', 5)
         || case when $3 then E'\n' || split_part($1::text, ' ', 1) else '' end
         || E'\n\n'
         
-    ;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+
 COMMENT ON FUNCTION pretty(text, bool, bool) IS '
 Converts fen string to a printable board. [sql]
 
-if 2 arg is true then use unicode
-if 3 arg is true add the fen string at the bottom of the board
+If uni is true then use unicode.
+If showfen is true add the fen string at the bottom of the board.
 ';
 
 CREATE OR REPLACE FUNCTION pretty(board, uni bool default false, showfen bool default true)
