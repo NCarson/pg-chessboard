@@ -44,11 +44,11 @@ addons:
 
 sudo: required
 
-service:
+services:
     postgresql
 
-#install:
-#  - sudo service postgresql restart
+install:
+  - sudo service postgresql restart
 
 script:
   - sudo make install
