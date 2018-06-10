@@ -7,37 +7,37 @@ select 'p'::cpiece::piece::text = 'P';
 select pretty('p'::piece);
  pretty 
 --------
- ♟
+ ♙
 (1 row)
 
 select pretty('n'::piece);
  pretty 
 --------
- ♞
+ ♘
 (1 row)
 
 select pretty('b'::piece);
  pretty 
 --------
- ♝
+ ♗
 (1 row)
 
 select pretty('r'::piece);
  pretty 
 --------
- ♜
+ ♖
 (1 row)
 
 select pretty('q'::piece);
  pretty 
 --------
- ♛
+ ♕
 (1 row)
 
 select pretty('k'::piece);
  pretty 
 --------
- ♚
+ ♔
 (1 row)
 
 select expected_or_fail_bool('p'::piece = 'P'::piece, true);

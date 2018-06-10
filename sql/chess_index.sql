@@ -396,7 +396,7 @@ SELECT value(''p''::piece);
 
 CREATE OR REPLACE FUNCTION pretty(piece)
 RETURNS text AS $$
-    SELECT translate($1::text, 'KQRBNP', U&'\265A\265B\265C\265D\265E\265F')
+    SELECT translate($1::text, 'KQRBNP', U&'\2654\2655\2656\2657\2658\2659')
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(piece) IS '
 Returns the unicode character of the piece.
@@ -405,7 +405,7 @@ Returns the unicode character of the piece.
 SELECT pretty(''p''::piece);
  pretty 
 ----------
- ♟
+ ♙
 (1 row)
 ';
 
@@ -1418,8 +1418,9 @@ COMMENT ON FUNCTION invert(board) IS '
 Reverses fen string, colors, and side to move. [sql]
 
 A white piece on a1 will become a black piece on h8.
-With this method we can treat all positions as 
-white meaning the side the move \(Classifying Chess Positions, De Sa, 2012\).
+With this method we can treat all positions with
+white now meaning: *the side with the move* 
+\(Classifying Chess Positions, De Sa, 2012\).
 
 Blacks go after 1. e4:
 ```sql

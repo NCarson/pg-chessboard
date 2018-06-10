@@ -297,8 +297,9 @@ Useful for external machine learning and statical analysis.
 Reverses fen string, colors, and side to move. [sql]
 
 A white piece on a1 will become a black piece on h8.
-With this method we can treat all positions as 
-white meaning the side the move \(Classifying Chess Positions, De Sa, 2012\).
+With this method we can treat all positions with
+white now meaning: *the side with the move* 
+\(Classifying Chess Positions, De Sa, 2012\).
 
 Blacks go after 1. e4:
 ```sql
