@@ -1478,7 +1478,7 @@ With this method we can treat all positions with
 white now meaning: *the side with the move* 
 \(Classifying Chess Positions, De Sa, 2012\).
 
-Blacks go after 1. e4:
+Black''s go after 1. e4:
 ```sql
 SELECT pretty(invert(''rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1''));
 ```
