@@ -38,11 +38,14 @@ addons:
     packages:
     - postgresql-server-dev-10
     - postgresql-client-10
-env:
-  global:
-  - PGPORT=5433
+#env:
+#  global:
+#  - PGPORT=5433
 
 sudo: required
+
+service:
+    postgresql
 
 #install:
 #  - sudo service postgresql restart
