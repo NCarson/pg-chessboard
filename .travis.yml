@@ -34,6 +34,7 @@ install:
 before_script:
   - sudo make install
   - sudo make installcheck
+  - sudo service postgres restart
 
 #script:
 #  - sudo -u postgres -H mkdir -p /tmp/space
