@@ -24,10 +24,10 @@ matrix:
 #       WAL_SUPPORTED: "yes"
 #     addons:
 #       postgresql: "9.6"
-     - env:
-         PG_VERSION: 10
-       addons:
-         postgresql: "10"
+#    - env:
+#        PG_VERSION: 10
+#      addons:
+#        postgresql: "10"
 
 sudo: required
 
