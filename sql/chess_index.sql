@@ -1361,6 +1361,62 @@ CREATE CAST (adiagonal AS int4) WITH FUNCTION char_to_int(adiagonal);
 -- sql functions
  ****************************************************************************/
 /*{{{*/
+
+CREATE OR REPLACE FUNCTION start_board()
+RETURNS board AS $$
+    SELECT 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION start_board() IS '
+Returns initial position of standard chess. [sql]
+
+```sql
+chess_test=# select pretty(start_board());
+```
+```
+           pretty           
+----------------------------
+ rnbqkbnr                  +
+ pppppppp                  +
+ ........                  +
+ ........                  +
+ ........                  +
+ ........                  +
+ PPPPPPPP                  +
+ RNBQKBNR  w  KQkq  -  0  1+
+                           +
+ 
+(1 row)
+```
+';
+
+CREATE OR REPLACE FUNCTION empty_board()
+RETURNS board AS $$
+    SELECT '8/8/8/8/8/8/8/8'::board
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION empty_board() IS '
+Returns a board with no pieces. [sql]
+
+```sql
+select pretty(empty_board());
+```
+```
+        pretty         
+-----------------------
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........  w  -  -    +
+                      +
+ 
+(1 row)
+```
+';
+
+
 CREATE OR REPLACE FUNCTION pretty(text, uni bool default false, showfen bool default false)
 RETURNS text AS $$
     SELECT replace(replace(replace(replace(replace(replace(replace(replace(

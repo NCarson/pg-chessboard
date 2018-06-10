@@ -273,6 +273,56 @@ SELECT pieces('8/8/8/8/8/8/8/6Pp'::board, 'h1'::square);
 ```
 
 ## Functions
+### empty_board() -> board
+
+
+Returns a board with no pieces. [sql]
+
+```sql
+select pretty(empty_board());
+```
+```
+        pretty         
+-----------------------
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........  w  -  -    +
+                      +
+ 
+(1 row)
+```
+
+
+### start_board() -> board
+
+
+Returns initial position of standard chess. [sql]
+
+```sql
+chess_test=# select pretty(start_board());
+```
+```
+           pretty           
+----------------------------
+ rnbqkbnr                  +
+ pppppppp                  +
+ ........                  +
+ ........                  +
+ ........                  +
+ ........                  +
+ PPPPPPPP                  +
+ RNBQKBNR  w  KQkq  -  0  1+
+                           +
+ 
+(1 row)
+```
+
+
 ### footer(board) -> cstring
 
 Returns the the fen string after the first board field.
@@ -482,7 +532,7 @@ Returns the unicode character of the piece.
 SELECT pretty('p'::piece);
  pretty 
 ----------
- ♟
+ ♙
 (1 row)
 
 

@@ -1,15 +1,23 @@
 
+
+# tests
+
 -- board(pieces('8/2p3kp/1P4p1/2P2p2/8/3P3P/2Q2bPK/4q3 b - -'::board, 'p')) fails -- seems ok; test
-
 - test empty boards: select pieces('8/8/8/8/8/8/8/8 w - - -'::board);
-
-- remove pfilter and change functions to take piece[] and cpiece[]
 - test side(cpiece)
-- have footer(board) return text
-- fix pretty(board)
+- test invert
+- test empty_board and start_board
+
+# fixes
+
+- fix invert(board):  add or remove en passant
+- fix pretty(board): needs to check for move number zeroed
 - fix pindex
-- test invert; add en passant
 - fix cfile and rank
-- pretty(piece) always returns black piece
+- remove pfilter and change functions to take piece[] and cpiece[]
+- have footer(board) return text
+
+# adds
+
 - add pieces(board, piecesquare)
 
