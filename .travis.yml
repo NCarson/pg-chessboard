@@ -28,17 +28,18 @@ matrix:
          PG_VERSION: 10
        addons:
          postgresql: "10"
+      apt:
+        packages:
+        - postgresql-server-dev-10
+        - postgresql-client-10
 
 
 sudo: required
 
-install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq -y postgresql-server-dev-${PG_VERSION}
-  - sudo apt-get install -qq -y postgresql-client-${PG_VERSION}
-  - sudo service postgresql restart
+#install:
+#  - sudo service postgresql restart
 
-before_script:
+script:
   - sudo make install
   - make installcheck
 
