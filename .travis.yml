@@ -1,7 +1,6 @@
 # based off https://github.com/pgroonga/pgroonga/blob/master/.travis.yml
 language: c
-matrix:
-  include:
+#matrix:
 
 #   - env:
 #       PG_VERSION: 9.2
@@ -33,6 +32,14 @@ matrix:
         - postgresql-server-dev-10
         - postgresql-client-10
 
+env:
+    PG_VERSION: 10
+    addons:
+         postgresql: "10"
+    apt:
+        packages:
+        - postgresql-server-dev-10
+        - postgresql-client-10
 
 sudo: required
 
