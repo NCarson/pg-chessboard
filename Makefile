@@ -12,6 +12,8 @@ REGRESS       	= setup piece cpiece square board board_func piecesquare pfilter
 #MODULES      	= $(patsubst %.c,%,$(wildcard src/*.c))
 #SHLIB_LINK += $(filter -lm, $(LIBS))
 
+PG_CPPFLAGS = -std=c99
+
 PG_CONFIG 	= pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
