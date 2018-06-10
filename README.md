@@ -291,6 +291,35 @@ Intergers values: {P=1,N=2,B=3,R=4, Q=5, K=7, p=8, n=9, b=10, r=11, q=12, k=13}
 Useful for external machine learning and statical analysis.
 
 
+### invert(board) -> board
+
+
+Reverses fen string, colors, and side to move. [sql]
+
+A white piece on a1 will become a black piece on h8.
+With this method we can treat all positions as 
+white meaning the side the move \(Classifying Chess Positions, De Sa, 2012\).
+
+Blacks go after 1. e4:
+```sql
+SELECT pretty(invert('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'));
+```
+```
+           pretty            
+        -----------------------------
+         RNBQKBNR                   +
+         PPPPPPPP                   +
+         ........                   +
+         ........                   +
+         ....p...                   +
+         ........                   +
+         pppp.ppp                   +
+         rnbqkbnr  w  KQkq  e3  0  1+
+```
+
+`TODO: handle en passant.`
+
+
 ### move(board) -> integer
 
 Returns the move number.
@@ -386,7 +415,7 @@ Returns a piecesquare given the square or null if there is no piece.
 
 Returns an array of piecesquares given the squares that are occupied.
 
-### pretty(board, uni boolean DEFAULT false, showfen boolean DEFAULT true) -> text
+### pretty(board, uni boolean DEFAULT false, showfen boolean DEFAULT false) -> text
 
 
 Generates a set of squares in fen order.

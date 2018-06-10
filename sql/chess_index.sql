@@ -1386,6 +1386,7 @@ RETURNS text AS $$
         || '  ' || split_part($1, ' ', 3)
         || '  ' || split_part($1, ' ', 4)
         || '  ' || split_part($1, ' ', 5)
+        || '  ' || split_part($1, ' ', 6)
         || case when $3 then E'\n' || split_part($1::text, ' ', 1) else '' end
         || E'\n\n'
         
@@ -1398,21 +1399,47 @@ If uni is true then use unicode.
 If showfen is true add the fen string at the bottom of the board.
 ';
 
-CREATE OR REPLACE FUNCTION pretty(board, uni bool default false, showfen bool default true)
+CREATE OR REPLACE FUNCTION pretty(board, uni bool default false, showfen bool default false)
 RETURNS text AS $$
 SELECT pretty($1::text, $2, $3)
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION pretty(board, bool, bool) IS '
 Converts fen string to a printable board. [sql]
 
-if 2 arg is true then use unicode
-if 3 arg is true add the fen string at the bottom of the board
+if *uni* is true then use unicode
+if *showfen* is true add the fen string at the bottom of the board
 ';
 
 CREATE OR REPLACE FUNCTION invert(board)
-RETURNS text AS $$
-    SELECT translate($1::text, 'KQRBNPkqrbnpwb', 'kqrbnpKQRBNPbw')
+RETURNS board AS $$
+select REPLACE(TRANSLATE($1::text, 'pnbrqkPNBRQKw', 'PNBRQKpnbrqkb'), ' B ', ' w ')::board
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION invert(board) IS '
+Reverses fen string, colors, and side to move. [sql]
+
+A white piece on a1 will become a black piece on h8.
+With this method we can treat all positions as 
+white meaning the side the move \(Classifying Chess Positions, De Sa, 2012\).
+
+Blacks go after 1. e4:
+```sql
+SELECT pretty(invert(''rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1''));
+```
+```
+           pretty            
+        -----------------------------
+         RNBQKBNR                   +
+         PPPPPPPP                   +
+         ........                   +
+         ........                   +
+         ....p...                   +
+         ........                   +
+         pppp.ppp                   +
+         rnbqkbnr  w  KQkq  e3  0  1+
+```
+
+`TODO: handle en passant.`
+';
 
 CREATE OR REPLACE FUNCTION squares()
 RETURNS setof square AS $$

@@ -1,5 +1,5 @@
 
--- board(pieces('8/2p3kp/1P4p1/2P2p2/8/3P3P/2Q2bPK/4q3 b - -'::board, 'p')) fails
+-- board(pieces('8/2p3kp/1P4p1/2P2p2/8/3P3P/2Q2bPK/4q3 b - -'::board, 'p')) fails -- seems ok; test
 
 - test empty boards: select pieces('8/8/8/8/8/8/8/8 w - - -'::board);
 
@@ -8,7 +8,8 @@
 - have footer(board) return text
 - fix pretty(board)
 - fix pindex
-- fix invert
+- test invert; add en passant
 - fix cfile and rank
 - pretty(piece) always returns black piece
+- add pieces(board, piecesquare)
 
