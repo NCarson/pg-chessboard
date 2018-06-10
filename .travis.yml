@@ -3,10 +3,10 @@ language: c
 matrix:
   include:
 
-    - env:
-        PG_VERSION: 9.2
-      addons:
-        postgresql: "9.2"
+#   - env:
+#       PG_VERSION: 9.2
+#     addons:
+#       postgresql: "9.2"
 #   - env:
 #       PG_VERSION: 9.3
 #     addons:
@@ -25,9 +25,9 @@ matrix:
 #     addons:
 #       postgresql: "9.6"
 #    - env:
-#        PG_VERSION: 10
-#      addons:
-#        postgresql: "10"
+         PG_VERSION: 10
+       addons:
+         postgresql: "10"
 
 sudo: required
 
@@ -37,7 +37,7 @@ install:
   - sudo apt-get install -qq -y postgresql-client-${PG_VERSION}
   - sudo service postgresql restart
 
-script:
+before_script:
   - sudo make install
   - make installcheck
 
