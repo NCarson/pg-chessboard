@@ -3,6 +3,8 @@
 
 ## Fast, Compact Types for Chess Board Positions
 
+[![Build Status](https://travis-ci.org/NCarson/pg-chessboard.svg?branch=master)](https://travis-ci.org/NCarson/pg-chessboard)
+
 ```sql
 select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board);
 ```
