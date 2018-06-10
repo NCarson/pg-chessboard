@@ -1,6 +1,6 @@
 
+language: bash
+
 install:
-    make
-    make installcheck
-    make install
+    make && make installcheck && make install
 
