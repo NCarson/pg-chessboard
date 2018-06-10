@@ -29,6 +29,7 @@ sudo: required
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq -y postgresql-server-dev-${PG_VERSION}
+  - sudo apt-get install -qq -y postgresql-client-${PG_VERSION}
 
 before_script:
   - sudo make install
