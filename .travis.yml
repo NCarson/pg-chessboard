@@ -32,14 +32,15 @@ language: c
 #       - postgresql-server-dev-10
 #       - postgresql-client-10
 
+addons:
+  postgresql: "10"
+  apt:
+    packages:
+    - postgresql-server-dev-10
+    - postgresql-client-10
 env:
-    PG_VERSION: 10
-    addons:
-         postgresql: "10"
-    apt:
-        packages:
-        - postgresql-server-dev-10
-        - postgresql-client-10
+  global:
+  - PGPORT=5433
 
 sudo: required
 
