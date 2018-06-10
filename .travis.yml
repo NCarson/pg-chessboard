@@ -1,7 +1,7 @@
 # based off https://github.com/pgroonga/pgroonga/blob/master/.travis.yml
 language: c
-#matrix:
 
+#matrix:
 #   - env:
 #       PG_VERSION: 9.2
 #     addons:
@@ -23,14 +23,14 @@ language: c
 #       WAL_SUPPORTED: "yes"
 #     addons:
 #       postgresql: "9.6"
-     - env:
-         PG_VERSION: 10
-       addons:
-         postgresql: "10"
-      apt:
-        packages:
-        - postgresql-server-dev-10
-        - postgresql-client-10
+#    - env:
+#        PG_VERSION: 10
+#      addons:
+#        postgresql: "10"
+#     apt:
+#       packages:
+#       - postgresql-server-dev-10
+#       - postgresql-client-10
 
 env:
     PG_VERSION: 10
