@@ -39,7 +39,7 @@ language: c
 #    - postgresql-server-dev-10
 #    - postgresql-client-10
 #
- addons:
+addons:
    postgresql: "9.6"
 #env:
 #  global:
