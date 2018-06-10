@@ -4,6 +4,10 @@ language: bash
 before_script:
   - sudo apt-get install postgresql-server-dev-all
   - sudo apt-get install postgresql-common
+  - psql -c 'create database travis_ci_test;' -U postgres
+
+services:
+  - postgresql
 
 install:
     - make 
