@@ -89,7 +89,7 @@ before_script:
   - createdb chess_regress                                   # Create the test database
 script:
   - make && sudo make install
-  - make installtest
+  - make installcheck
 
 after_failure:
  - psql -X -fsql/chess_index.sql -dchess_regress
