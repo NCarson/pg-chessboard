@@ -1,5 +1,9 @@
 
-\set ON_ERROR_STOP on
+\set ON_ERROR_STOP 
+
+-- we need this to test older versions so they all have the same behavier
+set client_min_messages = WARNING;
+
 
 CREATE OR REPLACE FUNCTION expected_or_fail_bool(val bool, expected bool)
 RETURNS void AS
