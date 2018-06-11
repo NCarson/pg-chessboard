@@ -23,10 +23,14 @@ select pretty('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board)
 (1 row)
 ```
 
-pg-chessboard is an extension for Postgres. https://github.com/theory/pgtap has
+pg-chessboard is an extension for Postgres.
+It is known to run on Postgres version 9.2 and up on linux. 
+It may also run on other OS's but I have never tried.
+Installation usually is: `make && sudo make install && make installcheck`.
+https://github.com/theory/pgtap also has
 good general instructions on how to install an extension for Postgres. It does 
-not generate moves or play chess \(see [pgchess](https://pgxn.org/dist/pgchess/0.1.0/) for
-and extension that does play chess\).
+not generate moves or play chess. See [pgchess](https://pgxn.org/dist/pgchess/0.1.0/) for
+something does.
 
 It is designed to efficiently store board positions from 
 [fen](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation)
