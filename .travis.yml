@@ -86,10 +86,10 @@ before_script:
   - sudo apt-get update -qq                                  # Retrieves new list of packages
   - sudo apt-get install postgresql-server-dev-$PGVERSION    # Required for PGXS
   - sudo apt-get install postgresql-common                   # Required for extension support files
-  - createdb chess_regress                                     # Create the test database
+  - createdb chess_regress                                   # Create the test database
 script:
   - make && sudo make install
-  - PGOPTIONS='--client-min-messages=debug5' psql -dchess_regress -c "create extension \"chess_index\""
+  - make installtest
 
 after_failure:
- - /usr/lib/postgresql/9.6/bin/psql -X -fsql/chess_index.sql -dchess_regress
+ - psql -X -fsql/chess_index.sql -dchess_regress
