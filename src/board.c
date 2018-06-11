@@ -56,6 +56,7 @@ PG_FUNCTION_INFO_V1(bitboard);
 PG_FUNCTION_INFO_V1(int_array);
 PG_FUNCTION_INFO_V1(board_move);
 PG_FUNCTION_INFO_V1(board_halfmove);
+PG_FUNCTION_INFO_V1(board_fiftyclock);
 /*}}}*/
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
@@ -678,6 +679,16 @@ board_move(PG_FUNCTION_ARGS)
 
 Datum
 board_halfmove(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    if (!b->move)
+        PG_RETURN_INT32(0);
+    else
+        PG_RETURN_INT32((b->move*2-1) + b->blacksgo);
+}
+
+Datum
+board_fiftyclock(PG_FUNCTION_ARGS)
 {
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
     PG_RETURN_INT32(b->last_capt);

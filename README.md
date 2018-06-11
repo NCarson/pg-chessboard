@@ -329,13 +329,19 @@ chess_test=# select pretty(start_board());
 ```
 
 
+### fiftyclock(board) -> integer
+
+Returns the the fifty-move rule halfmove clock
+
 ### footer(board) -> cstring
 
 Returns the the fen string after the first board field.
 
 ### halfmove(board) -> integer
 
-Returns the halfmove clock number.
+Returns the halfmove number as a turn by each move.
+
+(2*move)-1 + (1 if black)
 It will be zero if it was not set in the fen
 
 ### int_array(board) -> integer[]
@@ -379,7 +385,7 @@ SELECT pretty(invert('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 
 
 ### move(board) -> integer
 
-Returns the move number.
+Returns the move number as a a turn by each player.
 It will be zero if it was not set in the fen
 
 ### pcount(board) -> integer

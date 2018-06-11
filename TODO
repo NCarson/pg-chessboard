@@ -10,6 +10,7 @@
 
 # fixes
 
+- cant find side(board) in .so
 - fix invert(board):  add or remove en passant
 - fix pretty(board): needs to check for move number zeroed
 - fix pindex
@@ -20,4 +21,5 @@
 # adds
 
 - add pieces(board, piecesquare)
+- add board(piecesquare, board) to set reset state
 

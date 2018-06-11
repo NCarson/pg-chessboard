@@ -5,7 +5,8 @@
 
 ---set client_min_messages=DEBUG4;
 
---\set ON_ERROR_STOP;
+--\set ON_ERROR_STOP on
+--drop extension if exists chess_index cascade;
 
 /*
 DO language plpgsql $$ BEGIN
@@ -1027,14 +1028,29 @@ COMMENT ON FUNCTION side(board) IS
 CREATE FUNCTION move(board)
 RETURNS int AS '$libdir/chess_index', 'board_move' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION move(board) IS 
-'Returns the move number.
+'Returns the move number as a a turn by each player.
 It will be zero if it was not set in the fen';
 
 CREATE FUNCTION halfmove(board)
 RETURNS int AS '$libdir/chess_index', 'board_halfmove' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION halfmove(board) IS 
+'Returns the halfmove number as a turn by each move.
+
+(2*move)-1 + (1 if black)
+It will be zero if it was not set in the fen';
+
+CREATE FUNCTION fiftyclock(board)
+RETURNS int AS '$libdir/chess_index', 'board_fiftyclock' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION fiftyclock(board) IS 
+'Returns the the fifty-move rule halfmove clock';
+
+/*
+CREATE FUNCTION halfmove(board)
+RETURNS int AS '$libdir/chess_index', 'board_halfmove' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION halfmove(board) IS 
 'Returns the halfmove clock number.
 It will be zero if it was not set in the fen';
+*/
 
 CREATE FUNCTION score(board)
 RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;

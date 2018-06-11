@@ -32,7 +32,7 @@ sudo make install
 #psql -dchess_test -f sql/chess_index.sql
 
 if [[ "$CHECK" -eq 1 ]]; then
-    make installcheck;
+    make installcheck || psql -d$DB -f sql/chess_index.sql
 fi
 
 dropdb $DB
