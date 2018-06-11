@@ -19,9 +19,9 @@ BEGIN
 END;
 $body$
 LANGUAGE plpgsql;
-drop table if exists position;
-NOTICE:  table "position" does not exist, skipping
-CREATE TABLE position(
+drop table if exists ch_position;
+NOTICE:  table "ch_position" does not exist, skipping
+CREATE TABLE ch_position(
      fen            board           not null
 );
-\copy position from stdin
+\copy ch_position from stdin

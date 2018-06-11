@@ -23,12 +23,12 @@ END;
 $body$
 LANGUAGE plpgsql;
 
-drop table if exists position;
-CREATE TABLE position(
+drop table if exists ch_position;
+CREATE TABLE ch_position(
      fen            board           not null
 );
 
-\copy position from stdin
+\copy ch_position from stdin
 rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
 rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3
 rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -

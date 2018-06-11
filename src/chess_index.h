@@ -17,6 +17,9 @@
 
 //#define EXTRA_DEBUG 1
 
+#ifndef PG_RETURN_UINT16
+#define PG_RETURN_UINT16(x)	 return UInt16GetDatum(x)
+#endif
 
 /********************************************************
 * 		defines
