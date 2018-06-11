@@ -86,11 +86,11 @@ before_script:
   - sudo apt-get update -qq                                  # Retrieves new list of packages
   - sudo apt-get install postgresql-server-dev-$PGVERSION    # Required for PGXS
   - sudo apt-get install postgresql-common                   # Required for extension support files
-  #- createdb hll_regress                                     # Create the test database
+  - createdb chess_regress                                     # Create the test database
 script:
   - make && sudo make install
   #- psql -c "create extension hll" hll_regress
   #- make -C regress
-  - make installcheck
+  - make installcheck || createdb psql -fsql/chess_index.sql -dchess_regress
 after_failure:
   - cat regression.diffs
