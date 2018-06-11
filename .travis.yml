@@ -93,3 +93,4 @@ script:
 
 after_failure:
  - psql -X -fsql/chess_index.sql -dchess_regress
+ - cat regression.diffs
