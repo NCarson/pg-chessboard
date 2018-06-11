@@ -89,9 +89,7 @@ before_script:
   - createdb chess_regress                                     # Create the test database
 script:
   - make && sudo make install
-  #- psql -c "create extension hll" hll_regress
-  #- make -C regress
-  - make installcheck
+  - psql -dchess_regress -c "create extension chess_index";
 
 after_failure:
  - /usr/lib/postgresql/9.6/bin/psql -X -fsql/chess_index.sql -dchess_regress
