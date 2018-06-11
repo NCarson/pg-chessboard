@@ -101,7 +101,7 @@ Supports =, <>, and hash operations.
 
 CREATE FUNCTION pindex_to_int32(pindex)
 RETURNS int4 AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (pindex as int4) WITH FUNCTION pindex_to_int32;
+CREATE CAST (pindex as int4) WITH FUNCTION pindex_to_int32(pindex);
 
 CREATE FUNCTION pindex_eq(pindex, pindex)
 RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2eq';
@@ -529,7 +529,7 @@ SELECT side(''p''::cpiece);
 
 CREATE FUNCTION piece(cpiece)
 RETURNS piece AS '$libdir/chess_index', 'cpiece_to_piece' LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (cpiece as piece) WITH FUNCTION piece;
+CREATE CAST (cpiece as piece) WITH FUNCTION piece(cpiece);
 
 CREATE OR REPLACE FUNCTION pretty(cpiece)
 RETURNS text AS $$
