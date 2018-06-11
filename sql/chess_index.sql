@@ -3,10 +3,16 @@
 
 --\echo Use "CREATE EXTENSION chess_index" to load this file. \quit
 
---set client_min_messages=DEBUG5;
+set client_min_messages=DEBUG4;
 
 --\set ON_ERROR_STOP;
 
+
+/*
+DO language plpgsql $$ BEGIN
+  RAISE DEBUG 'type side:';
+END $$;
+*/
 
 /****************************************************************************
 -- side : white or black
