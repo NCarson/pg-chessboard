@@ -95,4 +95,3 @@ script:
 
 after_failure:
  - /usr/lib/postgresql/9.6/bin/psql -X -fsql/chess_index.sql -dchess_regress
- - cat regression.diffs
