@@ -1,71 +1,96 @@
-# based off https://github.com/pgroonga/pgroonga/blob/master/.travis.yml
-language: c
-
-#matrix:
-#   - env:
-#       PG_VERSION: 9.2
-#     addons:
-#       postgresql: "9.2"
-#   - env:
-#       PG_VERSION: 9.3
-#     addons:
-#       postgresql: "9.3"
-#   - env:
-#       PG_VERSION: 9.4
-#     addons:
-#       postgresql: "9.4"
-#   - env:
-#       PG_VERSION: 9.5
-#     addons:
-#       postgresql: "9.5"
-#   - env:
-#       PG_VERSION: 9.6
-#       WAL_SUPPORTED: "yes"
-#     addons:
-#       postgresql: "9.6"
-#    - env:
-#        PG_VERSION: 10
-#      addons:
-#        postgresql: "10"
-#     apt:
-#       packages:
-#       - postgresql-server-dev-10
-#       - postgresql-client-10
-
+## based off https://github.com/pgroonga/pgroonga/blob/master/.travis.yml
+#language: c
+#
+##matrix:
+##   - env:
+##       PG_VERSION: 9.2
+##     addons:
+##       postgresql: "9.2"
+##   - env:
+##       PG_VERSION: 9.3
+##     addons:
+##       postgresql: "9.3"
+##   - env:
+##       PG_VERSION: 9.4
+##     addons:
+##       postgresql: "9.4"
+##   - env:
+##       PG_VERSION: 9.5
+##     addons:
+##       postgresql: "9.5"
+##   - env:
+##       PG_VERSION: 9.6
+##       WAL_SUPPORTED: "yes"
+##     addons:
+##       postgresql: "9.6"
+##    - env:
+##        PG_VERSION: 10
+##      addons:
+##        postgresql: "10"
+##     apt:
+##       packages:
+##       - postgresql-server-dev-10
+##       - postgresql-client-10
+#
+##addons:
+##  postgresql: "10"
+##  apt:
+##    packages:
+##    - postgresql-server-dev-10
+##    - postgresql-client-10
+##
 #addons:
-#  postgresql: "10"
-#  apt:
-#    packages:
-#    - postgresql-server-dev-10
-#    - postgresql-client-10
+#   postgresql: "9.6"
+##env:
+##  global:
+##  - PGPORT=5433
+##
 #
-addons:
-   postgresql: "9.6"
-#env:
-#  global:
-#  - PGPORT=5433
+#sudo: required
 #
-
-sudo: required
-
-services:
-    postgresql
-
-install:
-  - sudo service postgresql restart
-
-script:
-  - sudo make install
-  - make installcheck
-
+#services:
+#    postgresql
+#
+#install:
+#  - sudo service postgresql restart
+#
 #script:
-#  - sudo -u postgres -H mkdir -p /tmp/space
-#    PG_REGRESS_DIFF_OPTS="-u" \
-#      make installcheck \
-#        TMP_DIR=/tmp \
-#        SETUP_TMP_DIR=no \
-#        EXTRA_REGRESS_OPTS="--launcher=$(pwd)/test/short-pgappname"
-#  - |
+#  - sudo make install
+#  - make installcheck
 #
+##script:
+##  - sudo -u postgres -H mkdir -p /tmp/space
+##    PG_REGRESS_DIFF_OPTS="-u" \
+##      make installcheck \
+##        TMP_DIR=/tmp \
+##        SETUP_TMP_DIR=no \
+##        EXTRA_REGRESS_OPTS="--launcher=$(pwd)/test/short-pgappname"
+##  - |
+##
+#
+
+#https://raw.githubusercontent.com/citusdata/postgresql-hll/master/.travis.yml
+sudo: required
+dist: trusty
+language: c
+env:
+  - PGVERSION=9.2
+  - PGVERSION=9.3
+  - PGVERSION=9.4
+  - PGVERSION=9.5
+  - PGVERSION=9.6
+before_script:
+  - export PATH=/usr/lib/postgresql/$PGVERSION/bin:$PATH     # Add our chosen PG version to the path
+  - sudo /etc/init.d/postgresql stop                         # Stop whichever version of PG that travis started
+  - sudo /etc/init.d/postgresql start $PGVERSION             # Start the version of PG that we want to test
+  - sudo apt-get update -qq                                  # Retrieves new list of packages
+  - sudo apt-get install postgresql-server-dev-$PGVERSION    # Required for PGXS
+  - sudo apt-get install postgresql-common                   # Required for extension support files
+  - createdb hll_regress                                     # Create the test database
+script:
+  - make && sudo make install
+  #- psql -c "create extension hll" hll_regress
+  #- make -C regress
+  - make installcheck
 after_failure:
   - cat regression.diffs
