@@ -91,6 +91,8 @@ script:
   - make && sudo make install
   #- psql -c "create extension hll" hll_regress
   #- make -C regress
-  - make installcheck || createdb psql -fsql/chess_index.sql -dchess_regress
+  - make installcheck
+
 after_failure:
+  - psql -fsql/chess_index.sql -dchess_regress
   - cat regression.diffs
