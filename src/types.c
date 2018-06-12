@@ -57,6 +57,7 @@ PG_FUNCTION_INFO_V1(not);
 PG_FUNCTION_INFO_V1(square_in);
 PG_FUNCTION_INFO_V1(square_out);
 PG_FUNCTION_INFO_V1(int_to_square);
+PG_FUNCTION_INFO_V1(file_rank_to_square);
 
 PG_FUNCTION_INFO_V1(piecesquare_in);
 PG_FUNCTION_INFO_V1(piecesquare_out);
@@ -212,7 +213,7 @@ cfile_in(PG_FUNCTION_ARGS)
 {
     char 			*str = PG_GETARG_CSTRING(0);
 
-    if (strlen(str) != 2) BAD_TYPE_IN("file", str); 
+    if (strlen(str) != 1) BAD_TYPE_IN("cfile", str); 
     PG_RETURN_CHAR(_cfile_in(str[0]));
 }
 
@@ -251,9 +252,9 @@ square_to_rank(PG_FUNCTION_ARGS)
 rank_in(PG_FUNCTION_ARGS)
 {
     char 			*str = PG_GETARG_CSTRING(0);
-    if (strlen(str) != 2)
+    if (strlen(str) != 1)
         BAD_TYPE_IN("rank", str); 
-    PG_RETURN_CHAR(_rank_in(str[1]));
+    PG_RETURN_CHAR(_rank_in(str[0]));
 }
 
     Datum
@@ -332,6 +333,15 @@ square_out(PG_FUNCTION_ARGS)
     result[2] = '\0';
 
     PG_RETURN_CSTRING(result);
+}
+
+Datum
+file_rank_to_square(PG_FUNCTION_ARGS)
+{
+    char			file = PG_GETARG_CHAR(0);
+    char			rank = PG_GETARG_CHAR(1);
+
+    PG_RETURN_CHAR(file) + ( 8 * rank);
 }
 
 Datum
@@ -671,8 +681,6 @@ static Board *_piecesquares_to_board(const char *footer, const Datum * input, co
     b->pcount = size;
     _board_footer_in(b, footer);
 
-    if (size < 1)
-        CH_ERROR("_piecesquares_to_board: internal error:pieces less than 1 :%i", size);
     if (size > PIECES_MAX)
         CH_ERROR("_piecesquares_to_board: internal error: too many pieces :%i", size);
 
@@ -723,8 +731,6 @@ piecesquares_to_board(PG_FUNCTION_ARGS)
 
 	// Extract the array contents (as Datum objects).
 	deconstruct_array(vals, valsType, valsTypeWidth, valsTypeByValue, valsTypeAlignmentCode, &valsContent, &valsNullFlags, &valsLength);
-	if (valsLength == 0)
-		  CH_ERROR("no values in array");
 
     board = _piecesquares_to_board(str, valsContent, valsLength, valsNullFlags);
     pfree(str);

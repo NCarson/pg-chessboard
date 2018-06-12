@@ -57,6 +57,8 @@ PG_FUNCTION_INFO_V1(int_array);
 PG_FUNCTION_INFO_V1(board_move);
 PG_FUNCTION_INFO_V1(board_halfmove);
 PG_FUNCTION_INFO_V1(board_fiftyclock);
+PG_FUNCTION_INFO_V1(board_cpiece_max_rank);
+PG_FUNCTION_INFO_V1(board_cpiece_min_rank);
 /*}}}*/
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
@@ -372,6 +374,8 @@ board_out(PG_FUNCTION_ARGS)
 }
 
 static int 
+
+/*}}}*/
 _board_out(const Board * b, char * str)/*{{{*/
 {
     int             i;
@@ -853,6 +857,7 @@ _pieces_square(PG_FUNCTION_ARGS)
 
 }
 
+
 Datum 
 _pieces_squares(PG_FUNCTION_ARGS)
 {
@@ -882,6 +887,7 @@ _pieces_squares(PG_FUNCTION_ARGS)
 	// Determine the array element types.
 	valsType = ARR_ELEMTYPE(vals);
 	valsLength = (ARR_DIMS(vals))[0];
+
 	get_typlenbyvalalign(valsType, &valsTypeWidth, &valsTypeByValue, &valsTypeAlignmentCode);
 	// Extract the array contents (as Datum objects).
 	deconstruct_array(vals, valsType, valsTypeWidth, valsTypeByValue, valsTypeAlignmentCode, &valsContent, &valsNullFlags, &valsLength);
@@ -1105,6 +1111,77 @@ int_array(PG_FUNCTION_ARGS)
 	a = construct_array(d, SQUARE_MAX, INT4OID, sizeof(int32), true, 'i');
     pfree(d);
     PG_RETURN_ARRAYTYPE_P(a);
+}
+
+
+Datum
+board_cpiece_max_rank(PG_FUNCTION_ARGS)
+{
+    const Board         *b = (Board *)PG_GETARG_POINTER(0);
+    const char          file = PG_GETARG_CHAR(1);
+    const cpiece_t      piece = PG_GETARG_CHAR(2);
+    
+    board_t             *board = _bitboard_to_board(b);
+    char                result=-1;
+    
+
+    if (_cpiece_side(piece)== WHITE) {
+        for (int i=7, j=0+file; i>=0; i--)  {
+            if ((board[j]) == piece) {
+                result = i;
+                break;
+            }
+            j+=8;
+        }
+    } else {
+        for (int i=0, j=56+file; i<8; i++)  {
+            if ((board[j]) == piece) {
+                result = i;
+                break;
+            }
+            j-=8;
+        }
+    }
+    pfree(board);
+    if (result != -1)
+        PG_RETURN_CHAR(result);
+    else
+        PG_RETURN_NULL();
+}
+
+Datum
+board_cpiece_min_rank(PG_FUNCTION_ARGS)
+{
+    const Board         *b = (Board *)PG_GETARG_POINTER(0);
+    const char          file = PG_GETARG_CHAR(1);
+    const cpiece_t      piece = PG_GETARG_CHAR(2);
+    
+    board_t             *board = _bitboard_to_board(b);
+    char                result=-1;
+    
+
+    if (_cpiece_side(piece)== WHITE) {
+        for (int i=0, j=56+file; i<8; i++)  {
+            if ((board[j]) == piece) {
+                result = i;
+                break;
+            }
+            j-=8;
+        }
+    } else {
+        for (int i=7, j=0+file; i>=0; i--)  {
+            if ((board[j]) == piece) {
+                result = i;
+                break;
+            }
+            j+=8;
+        }
+    }
+    pfree(board);
+    if (result != -1)
+        PG_RETURN_CHAR(result);
+    else
+        PG_RETURN_NULL();
 }
 
 /*}}}*/

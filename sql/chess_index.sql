@@ -4,10 +4,8 @@
 --\echo Use "CREATE EXTENSION chess_index" to load this file. \quit
 
 ---set client_min_messages=DEBUG4;
-
---\set ON_ERROR_STOP on
 --drop extension if exists chess_index cascade;
-
+--\set ON_ERROR_STOP on
 /*
 DO language plpgsql $$ BEGIN
   RAISE DEBUG 'type side:';
@@ -78,6 +76,263 @@ CREATE OPERATOR <> (
     JOIN = neqjoinsel
 );
 /*}}}*//*}}}*/
+/****************************************************************************
+-- file
+ ****************************************************************************/
+/*{{{*/
+CREATE FUNCTION cfile_in(cstring)
+RETURNS cfile 
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION cfile_out(cfile)
+RETURNS cstring
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE cfile(
+    INPUT          = cfile_in,
+    OUTPUT         = cfile_out,
+
+    INTERNALLENGTH = 1,     
+    ALIGNMENT      = char, 
+    STORAGE        = PLAIN, -- always store data inline uncompressed (not toasted)
+    PASSEDBYVALUE           -- pass data by value rather than by reference
+);
+COMMENT ON TYPE cfile IS '
+Represents a chess board file a-h.
+
+Input format is ''a''.
+Uses 1 byte of storage.
+Can be cast to an int where ''a''=0.
+Supports =, <>, <, >, >=, <=, hash operations and btree operations.
+';
+
+CREATE CAST ("char" AS cfile) WITHOUT FUNCTION;
+CREATE CAST (cfile AS "char") WITHOUT FUNCTION as IMPLICIT;
+
+CREATE FUNCTION cfile_eq(cfile, cfile)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'chareq';
+CREATE FUNCTION cfile_ne(cfile, cfile)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'charne';
+CREATE FUNCTION cfile_lt(cfile, cfile)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'charlt';
+CREATE FUNCTION cfile_le(cfile, cfile)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'charle';
+CREATE FUNCTION cfile_gt(cfile, cfile)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'chargt';
+CREATE FUNCTION cfile_ge(cfile, cfile)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'charge';
+CREATE FUNCTION cfile_cmp(cfile, cfile)
+RETURNS integer LANGUAGE internal IMMUTABLE AS 'btcharcmp';
+CREATE FUNCTION hash_cfile(cfile)
+RETURNS integer LANGUAGE internal IMMUTABLE AS 'hashchar';
+
+CREATE OPERATOR = (
+  LEFTARG = cfile,
+  RIGHTARG = cfile,
+  PROCEDURE = cfile_eq,
+  COMMUTATOR = '=',
+  NEGATOR = '<>',
+  RESTRICT = eqsel,
+  JOIN = eqjoinsel,
+  HASHES, MERGES
+);
+
+CREATE OPERATOR <> (
+  LEFTARG = cfile,
+  RIGHTARG = cfile,
+  PROCEDURE = cfile_ne,
+  COMMUTATOR = '<>',
+  NEGATOR = '=',
+  RESTRICT = neqsel,
+  JOIN = neqjoinsel
+);
+
+CREATE OPERATOR < (
+  LEFTARG = cfile,
+  RIGHTARG = cfile,
+  PROCEDURE = cfile_lt,
+  COMMUTATOR = > ,
+  NEGATOR = >= ,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR <= (
+  LEFTARG = cfile,
+  RIGHTARG = cfile,
+  PROCEDURE = cfile_le,
+  COMMUTATOR = >= ,
+  NEGATOR = > ,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR > (
+  LEFTARG = cfile,
+  RIGHTARG = cfile,
+  PROCEDURE = cfile_gt,
+  COMMUTATOR = < ,
+  NEGATOR = <= ,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR >= (
+  LEFTARG = cfile,
+  RIGHTARG = cfile,
+  PROCEDURE = cfile_ge,
+  COMMUTATOR = <= ,
+  NEGATOR = < ,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR CLASS btree_cfile_ops
+DEFAULT FOR TYPE cfile USING btree
+AS
+        OPERATOR        1       <  ,
+        OPERATOR        2       <= ,
+        OPERATOR        3       =  ,
+        OPERATOR        4       >= ,
+        OPERATOR        5       >  ,
+        FUNCTION        1       cfile_cmp(cfile, cfile);
+
+CREATE OPERATOR CLASS hash_cfile_ops
+    DEFAULT FOR TYPE cfile USING hash AS
+        OPERATOR        1       = ,
+        FUNCTION        1       hash_cfile(cfile);
+
+/*}}}*/
+/****************************************************************************
+-- rank
+ ****************************************************************************/
+/*{{{*/
+CREATE FUNCTION rank_in(cstring)
+RETURNS rank
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rank_out(rank)
+RETURNS cstring
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE rank(
+    INPUT          = rank_in,
+    OUTPUT         = rank_out,
+
+    INTERNALLENGTH = 1,     -- use 4 bytes to store data
+    ALIGNMENT      = char,  -- align to 4 bytes
+    STORAGE        = PLAIN, -- always store data inline uncompressed (not toasted)
+    PASSEDBYVALUE           -- pass data by value rather than by reference
+);
+COMMENT ON TYPE "rank" IS '
+Represents a chess rank file 1-8.
+
+Input format is ''1''.
+Uses 1 byte of storage.
+Can be cast to an int where ''1''=0.
+';
+
+CREATE CAST ("char" AS rank) WITHOUT FUNCTION;
+CREATE CAST (rank AS "char") WITHOUT FUNCTION;
+
+CREATE FUNCTION rank_eq(rank, rank)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'chareq';
+CREATE FUNCTION rank_ne(rank, rank)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'charne';
+CREATE FUNCTION rank_lt(rank, rank)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'charlt';
+CREATE FUNCTION rank_le(rank, rank)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'charle';
+CREATE FUNCTION rank_gt(rank, rank)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'chargt';
+CREATE FUNCTION rank_ge(rank, rank)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'charge';
+CREATE FUNCTION rank_cmp(rank, rank)
+RETURNS integer LANGUAGE internal IMMUTABLE AS 'btcharcmp';
+CREATE FUNCTION hash_rank(rank)
+RETURNS integer LANGUAGE internal IMMUTABLE AS 'hashchar';
+
+CREATE OPERATOR = (
+  LEFTARG = rank,
+  RIGHTARG = rank,
+  PROCEDURE = rank_eq,
+  COMMUTATOR = '=',
+  NEGATOR = '<>',
+  RESTRICT = eqsel,
+  JOIN = eqjoinsel,
+  HASHES, MERGES
+);
+
+CREATE OPERATOR <> (
+  LEFTARG = rank,
+  RIGHTARG = rank,
+  PROCEDURE = rank_ne,
+  COMMUTATOR = '<>',
+  NEGATOR = '=',
+  RESTRICT = neqsel,
+  JOIN = neqjoinsel
+);
+
+CREATE OPERATOR < (
+  LEFTARG = rank,
+  RIGHTARG = rank,
+  PROCEDURE = rank_lt,
+  COMMUTATOR = > ,
+  NEGATOR = >= ,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR <= (
+  LEFTARG = rank,
+  RIGHTARG = rank,
+  PROCEDURE = rank_le,
+  COMMUTATOR = >= ,
+  NEGATOR = > ,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR > (
+  LEFTARG = rank,
+  RIGHTARG = rank,
+  PROCEDURE = rank_gt,
+  COMMUTATOR = < ,
+  NEGATOR = <= ,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR >= (
+  LEFTARG = rank,
+  RIGHTARG = rank,
+  PROCEDURE = rank_ge,
+  COMMUTATOR = <= ,
+  NEGATOR = < ,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR CLASS btree_rank_ops
+DEFAULT FOR TYPE rank USING btree
+AS
+        OPERATOR        1       <  ,
+        OPERATOR        2       <= ,
+        OPERATOR        3       =  ,
+        OPERATOR        4       >= ,
+        OPERATOR        5       >  ,
+        FUNCTION        1       rank_cmp(rank, rank);
+
+CREATE OPERATOR CLASS hash_rank_ops
+    DEFAULT FOR TYPE rank USING hash AS
+        OPERATOR        1       = ,
+        FUNCTION        1       hash_rank(rank);
+
+/*}}}*/
 /****************************************************************************
 -- pindex : piece index
  ****************************************************************************/
@@ -228,8 +483,9 @@ The sort order is in fourth
 [quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
 where a8 is 0.
 Input format is ''e4''.
-Uses 1 byte of storage. Squares can be cast to chars and ints to work with the raw
-number.  Supports =, <>, <, >, >=, <=, hash operations and btree operations.
+Uses 1 byte of storage. 
+Squares can be cast to chars and ints to work with the raw number.  
+Supports =, <>, <, >, >=, <=, hash operations and btree operations.
 
 Select pieces occupying square h1:
 ```sql
@@ -247,9 +503,20 @@ CREATE CAST ("char" AS square) WITHOUT FUNCTION;
 CREATE CAST (square AS "char") WITHOUT FUNCTION;
 CREATE FUNCTION square(int) RETURNS square AS $$ SELECT $1::"char"::square $$ LANGUAGE SQL IMMUTABLE STRICT;
 CREATE FUNCTION "int"(square) RETURNS int AS $$ SELECT $1::"char"::int $$ LANGUAGE SQL IMMUTABLE STRICT;
-
 CREATE CAST (int AS square) WITH FUNCTION square(int);
 CREATE CAST (square AS int) WITH FUNCTION "int"(square);
+
+CREATE FUNCTION square(cfile, rank)
+RETURNS square AS '$libdir/chess_index', 'file_rank_to_square' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rank(square)
+RETURNS rank AS '$libdir/chess_index', 'square_to_rank' LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (square AS rank) WITH FUNCTION rank(square);
+
+CREATE FUNCTION cfile(square)
+RETURNS cfile AS '$libdir/chess_index', 'square_to_cfile' LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (square AS cfile) WITH FUNCTION cfile(square);
+
 
 CREATE FUNCTION square_eq(square, square)
 RETURNS boolean LANGUAGE internal IMMUTABLE as 'chareq';
@@ -400,20 +667,6 @@ SELECT value(''p''::piece);
 ```
 ';
 
-CREATE OR REPLACE FUNCTION pretty(piece)
-RETURNS text AS $$
-    SELECT translate($1::text, 'KQRBNP', U&'\2654\2655\2656\2657\2658\2659')
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION pretty(piece) IS '
-Returns the unicode character of the piece.
-
-```sql
-SELECT pretty(''p''::piece);
- pretty 
-----------
- ♙
-(1 row)
-';
 
 
 -----------------------------------------------------------------------------
@@ -532,24 +785,6 @@ CREATE FUNCTION piece(cpiece)
 RETURNS piece AS '$libdir/chess_index', 'cpiece_to_piece' LANGUAGE C IMMUTABLE STRICT;
 CREATE CAST (cpiece as piece) WITH FUNCTION piece(cpiece);
 
-CREATE OR REPLACE FUNCTION pretty(cpiece)
-RETURNS text AS $$
-    SELECT translate($1::text, 'KQRBNPkqrbnp', U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F')
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION pretty(cpiece) IS '
-Returns the unicode character of the piece.
-
-```sql
-SELECT pretty(''p''::cpiece);
-```
-```
- pretty 
---------
- ♟
-(1 row)
-```
-';
-
 
 -----------------------------------------------------------------------------
 -- ops
@@ -657,31 +892,6 @@ COMMENT ON FUNCTION cpiece(piecesquare) IS '
 Casts piecesquare to cpiece.
 ';
 
-CREATE OR REPLACE FUNCTION pretty(piecesquare)
-RETURNS text AS $$
-    SELECT pretty($1::cpiece) || $1::square::text
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION pretty(piecesquare) IS '
-Returns unicode chess symbol of piece. [sql]
-
-```sql
- SELECT pretty(''pa2''::piecesquare);
-```
-```
- pretty 
---------
- ♟a2
-(1 row)
-```
-';
-
-CREATE OR REPLACE FUNCTION pretty(piecesquare[])
-RETURNS text[] AS $$
-    SELECT array_agg(pretty) from (SELECT pretty(unnest($1))) t
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION pretty(piecesquare[]) IS '
-Returns unicode chess symbol of pieces. [sql]
-';
 
 CREATE FUNCTION piecesquare_eq(piecesquare, piecesquare)
 RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2eq';
@@ -778,6 +988,92 @@ OPERATOR        1       = ,
 FUNCTION        1       hash_piecesquare(piecesquare);
 
 /*}}}*/
+/****************************************************************************
+-- diagonal
+ ****************************************************************************/
+/*{{{*/
+CREATE FUNCTION diagonal_in(cstring)
+RETURNS diagonal
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION diagonal_out(diagonal)
+RETURNS cstring
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE diagonal(
+    INPUT          = diagonal_in,
+    OUTPUT         = diagonal_out,
+
+    INTERNALLENGTH = 1,     -- use 4 bytes to store data
+    ALIGNMENT      = char,  -- align to 4 bytes
+    STORAGE        = PLAIN, -- always store data inline uncompressed (not toasted)
+    PASSEDBYVALUE           -- pass data by value rather than by reference
+);
+COMMENT ON TYPE diagonal IS '
+Represents a diagonal on the board.
+
+Uses 1 byte of storage.
+TODO
+';
+
+CREATE FUNCTION square_to_diagonal(square)
+RETURNS diagonal
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (square AS diagonal) WITH FUNCTION square_to_diagonal(square);
+
+CREATE FUNCTION char_to_int(diagonal)
+RETURNS int4
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (diagonal AS int4) WITH FUNCTION char_to_int(diagonal);
+/*}}}*/
+/****************************************************************************
+-- adiagonal
+ ****************************************************************************/
+/*{{{*/
+CREATE FUNCTION adiagonal_in(cstring)
+RETURNS adiagonal
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION adiagonal_out(adiagonal)
+RETURNS cstring
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE adiagonal(
+    INPUT          = adiagonal_in,
+    OUTPUT         = adiagonal_out,
+
+    INTERNALLENGTH = 1,     -- use 4 bytes to store data
+    ALIGNMENT      = char,  -- align to 4 bytes
+    STORAGE        = PLAIN, -- always store data inline uncompressed (not toasted)
+    PASSEDBYVALUE           -- pass data by value rather than by reference
+);
+COMMENT ON TYPE adiagonal IS '
+Represents a anti-diagonal on the board.
+
+https://en.wikipedia.org/wiki/Anti-diagonal_matrix
+Uses 1 byte of storage.
+TODO
+';
+
+CREATE FUNCTION square_to_adiagonal(square)
+RETURNS adiagonal
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (square AS adiagonal) WITH FUNCTION square_to_adiagonal(square);
+
+CREATE FUNCTION char_to_int(adiagonal)
+RETURNS int4
+AS '$libdir/chess_index'
+LANGUAGE C IMMUTABLE STRICT;
+CREATE CAST (adiagonal AS int4) WITH FUNCTION char_to_int(adiagonal);
+/*}}}*/
+
 /****************************************************************************
 -- board: displays as fen, holds position
  ****************************************************************************/
@@ -1107,6 +1403,16 @@ Intergers values: {P=1,N=2,B=3,R=4, Q=5, K=7, p=8, n=9, b=10, r=11, q=12, k=13}
 Useful for external machine learning and statical analysis.
 ';
 
+CREATE FUNCTION max_rank(board, cfile, cpiece)
+RETURNS rank AS '$libdir/chess_index', 'board_cpiece_max_rank' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION max_rank(board, cfile, cpiece) IS 
+'Returns maximum rank of a cpiece on a file relative to its side
+
+Maximum rank for white is 8 and for black 1.';
+
+CREATE FUNCTION min_rank(board, cfile, cpiece)
+RETURNS rank AS '$libdir/chess_index', 'board_cpiece_min_rank' LANGUAGE C IMMUTABLE STRICT;
+
 /*}}}*/
 /*---------------------------------------/
 /  ops                                   /
@@ -1205,183 +1511,200 @@ DEFAULT FOR TYPE board USING hash AS
 OPERATOR        1       = ,
 FUNCTION        1       board_hash(board);/*}}}*/
 /*}}}*/
-/****************************************************************************
--- file
- ****************************************************************************/
-/*{{{*/
-CREATE FUNCTION cfile_in(cstring)
-RETURNS cfile 
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
 
-CREATE FUNCTION cfile_out(cfile)
-RETURNS cstring
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-
-CREATE TYPE cfile(
-    INPUT          = cfile_in,
-    OUTPUT         = cfile_out,
-
-    INTERNALLENGTH = 1,     
-    ALIGNMENT      = char, 
-    STORAGE        = PLAIN, -- always store data inline uncompressed (not toasted)
-    PASSEDBYVALUE           -- pass data by value rather than by reference
-);
-COMMENT ON TYPE cfile IS '
-Represents a chess board file a-h.
-
-Input format is ''a''.
-Uses 1 byte of storage.
-Can be cast to an int where ''a''=0.
-';
-
-CREATE FUNCTION square_to_cfile(square)
-RETURNS cfile
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (square AS cfile) WITH FUNCTION square_to_cfile(square);
-
-CREATE FUNCTION char_to_int(cfile)
-RETURNS int4
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (cfile AS int4) WITH FUNCTION char_to_int(cfile);
-
-/*}}}*/
-/****************************************************************************
--- rank
- ****************************************************************************/
-/*{{{*/
-CREATE FUNCTION rank_in(cstring)
-RETURNS rank
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION rank_out(rank)
-RETURNS cstring
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-
-CREATE TYPE rank(
-    INPUT          = rank_in,
-    OUTPUT         = rank_out,
-
-    INTERNALLENGTH = 1,     -- use 4 bytes to store data
-    ALIGNMENT      = char,  -- align to 4 bytes
-    STORAGE        = PLAIN, -- always store data inline uncompressed (not toasted)
-    PASSEDBYVALUE           -- pass data by value rather than by reference
-);
-COMMENT ON TYPE "rank" IS '
-Represents a chess rank file 1-8.
-
-Input format is ''1''.
-Uses 1 byte of storage.
-Can be cast to an int where ''1''=0.
-';
-
-
-CREATE FUNCTION square_to_rank(square)
-RETURNS rank
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (square AS rank) WITH FUNCTION square_to_rank(square);
-
-CREATE FUNCTION char_to_int(rank)
-RETURNS int4
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (rank AS int4) WITH FUNCTION char_to_int(rank);
-/*}}}*/
-/****************************************************************************
--- diagonal
- ****************************************************************************/
-/*{{{*/
-CREATE FUNCTION diagonal_in(cstring)
-RETURNS diagonal
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION diagonal_out(diagonal)
-RETURNS cstring
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-
-CREATE TYPE diagonal(
-    INPUT          = diagonal_in,
-    OUTPUT         = diagonal_out,
-
-    INTERNALLENGTH = 1,     -- use 4 bytes to store data
-    ALIGNMENT      = char,  -- align to 4 bytes
-    STORAGE        = PLAIN, -- always store data inline uncompressed (not toasted)
-    PASSEDBYVALUE           -- pass data by value rather than by reference
-);
-COMMENT ON TYPE diagonal IS '
-Represents a diagonal on the board.
-
-Uses 1 byte of storage.
-TODO
-';
-
-CREATE FUNCTION square_to_diagonal(square)
-RETURNS diagonal
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (square AS diagonal) WITH FUNCTION square_to_diagonal(square);
-
-CREATE FUNCTION char_to_int(diagonal)
-RETURNS int4
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (diagonal AS int4) WITH FUNCTION char_to_int(diagonal);
-/*}}}*/
-/****************************************************************************
--- adiagonal
- ****************************************************************************/
-/*{{{*/
-CREATE FUNCTION adiagonal_in(cstring)
-RETURNS adiagonal
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION adiagonal_out(adiagonal)
-RETURNS cstring
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-
-CREATE TYPE adiagonal(
-    INPUT          = adiagonal_in,
-    OUTPUT         = adiagonal_out,
-
-    INTERNALLENGTH = 1,     -- use 4 bytes to store data
-    ALIGNMENT      = char,  -- align to 4 bytes
-    STORAGE        = PLAIN, -- always store data inline uncompressed (not toasted)
-    PASSEDBYVALUE           -- pass data by value rather than by reference
-);
-COMMENT ON TYPE adiagonal IS '
-Represents a anti-diagonal on the board.
-
-https://en.wikipedia.org/wiki/Anti-diagonal_matrix
-Uses 1 byte of storage.
-TODO
-';
-
-CREATE FUNCTION square_to_adiagonal(square)
-RETURNS adiagonal
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (square AS adiagonal) WITH FUNCTION square_to_adiagonal(square);
-
-CREATE FUNCTION char_to_int(adiagonal)
-RETURNS int4
-AS '$libdir/chess_index'
-LANGUAGE C IMMUTABLE STRICT;
-CREATE CAST (adiagonal AS int4) WITH FUNCTION char_to_int(adiagonal);
-/*}}}*/
 /****************************************************************************
 -- sql functions
  ****************************************************************************/
 /*{{{*/
+
+-----------------------------------------------------------------------------
+-- squares
+-----------------------------------------------------------------------------
+/*{{{*/
+CREATE OR REPLACE FUNCTION squares()
+RETURNS setof square AS $$
+     SELECT (56 - (i/8)*8 + (i%8))::square  from generate_series(0, 63) as i;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION squares() IS 'Generates a set of squares in fen order. [sql]';
+
+CREATE OR REPLACE FUNCTION squares("rank")
+RETURNS square[] AS $$
+    select array_agg(squares) from (select squares())t  where squares::rank = $1
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION squares(rank) IS 'Generates an array of squares that are members of the rank. [sql]';
+
+CREATE OR REPLACE FUNCTION squares(cfile)
+RETURNS square[] AS $$
+    select array_agg(squares) from (select squares())t  where squares::cfile = $1
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION squares(cfile) IS 'Generates an array of squares that are members of the file. [sql]';
+
+CREATE OR REPLACE FUNCTION squares(diagonal)
+RETURNS square[] AS $$
+    select array_agg(squares) from (select squares())t  where squares::diagonal::int = $1::int
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION squares(diagonal) IS 'Generates an array of squares that are members of the diagonal. [sql]';
+
+CREATE OR REPLACE FUNCTION squares(adiagonal)
+RETURNS square[] AS $$
+    select array_agg(squares) from (select squares())t  where squares::adiagonal::int = $1::int
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION squares(adiagonal) IS 'Generates an array of squares that are members of the adiagonal. [sql]';
+/*}}}*/
+
+-----------------------------------------------------------------------------
+-- pretty
+-----------------------------------------------------------------------------
+/*{{{*/
+CREATE OR REPLACE FUNCTION pretty(text, uni bool default false, showfen bool default false)
+RETURNS text AS $$
+    SELECT replace(replace(replace(replace(replace(replace(replace(replace(
+            translate
+            (
+                 split_part($1, ' ', 1)
+                , case when $2 then '/KQRBNPkqrbnp' else '/' end
+                , case when $2
+                    then E'\n' || U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F'
+                    else E'\n'  
+                  end
+            )
+            , '8', case when not $2 then '........' else U&'.\200A.\200A.\200A.\200A.\200A.\200A.\200A.\200A' end) 
+            , '7', case when not $2 then '.......' else U&'.\200A.\200A.\200A.\200A.\200A.\200A.\200A' end) 
+            , '6', case when not $2 then '......' else U&'.\200A.\200A.\200A.\200A.\200A.\200A' end) 
+            , '5', case when not $2 then '.....' else U&'.\200A.\200A.\200A.\200A.\200A' end) 
+            , '4', case when not $2 then '....' else U&'.\200A.\200A.\200A.\200A' end) 
+            , '3', case when not $2 then '...' else U&'.\200A.\200A.\200A' end) 
+            , '2', case when not $2 then '..' else U&'.\200A.\200A' end) 
+            , '1', case when not $2 then '.' else U&'.\200A' end) 
+
+        || '  ' || split_part($1, ' ', 2)
+        || '  ' || split_part($1, ' ', 3)
+        || '  ' || split_part($1, ' ', 4)
+        || '  ' || split_part($1, ' ', 5)
+        || '  ' || split_part($1, ' ', 6)
+        || case when $3 then E'\n' || split_part($1::text, ' ', 1) else '' end
+        || E'\n\n'
+        
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+COMMENT ON FUNCTION pretty(text, bool, bool) IS '
+Converts fen string to a printable board. [sql]
+
+If uni is true then use unicode.
+If showfen is true add the fen string at the bottom of the board.
+';
+
+CREATE OR REPLACE FUNCTION pretty(board, uni bool default false, showfen bool default false)
+RETURNS text AS $$
+SELECT pretty($1::text, $2, $3)
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pretty(board, bool, bool) IS '
+Converts fen string to a printable board. [sql]
+
+if *uni* is true then use unicode
+if *showfen* is true add the fen string at the bottom of the board
+';
+
+CREATE OR REPLACE FUNCTION pretty(piece)
+RETURNS text AS $$
+    SELECT translate($1::text, 'KQRBNP', U&'\2654\2655\2656\2657\2658\2659')
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pretty(piece) IS '
+Returns the unicode character of the piece.
+
+```sql
+SELECT pretty(''p''::piece);
+ pretty 
+----------
+ ♙
+(1 row)
+';
+
+CREATE OR REPLACE FUNCTION pretty(cpiece)
+RETURNS text AS $$
+    SELECT translate($1::text, 'KQRBNPkqrbnp', U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F')
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pretty(cpiece) IS '
+Returns the unicode character of the piece.
+
+```sql
+SELECT pretty(''p''::cpiece);
+```
+```
+ pretty 
+--------
+ ♟
+(1 row)
+```
+';
+
+CREATE OR REPLACE FUNCTION pretty(piecesquare)
+RETURNS text AS $$
+    SELECT pretty($1::cpiece) || $1::square::text
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pretty(piecesquare) IS '
+Returns unicode chess symbol of piece. [sql]
+
+```sql
+ SELECT pretty(''pa2''::piecesquare);
+```
+```
+ pretty 
+--------
+ ♟a2
+(1 row)
+```
+';
+
+CREATE OR REPLACE FUNCTION pretty(piecesquare[])
+RETURNS text[] AS $$
+    SELECT array_agg(pretty) from (SELECT pretty(unnest($1))) t
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION pretty(piecesquare[]) IS '
+Returns unicode chess symbol of pieces. [sql]
+';
+
+/*}}}*/
+
+CREATE OR REPLACE FUNCTION white(piece)
+RETURNS cpiece AS
+$$
+    SELECT upper($1::piece::text)::cpiece;
+
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION white(piece[])
+RETURNS cpiece[] AS
+$$
+    SELECT array_agg(white) from 
+    (
+        SELECT white(unnest) from (SELECT unnest($1))t 
+    )tt
+
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION black(piece)
+RETURNS cpiece AS
+$$
+    SELECT lower($1::piece::text)::cpiece;
+
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION black(piece[])
+RETURNS cpiece[] AS
+$$
+    SELECT array_agg(black) from 
+    (
+        SELECT black(unnest) from (SELECT unnest($1))t 
+    )tt
+
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION bitarray(bit(64))
+RETURNS bit[] AS $$
+    SELECT string_to_array(($1)::text, NULL)::bit[]
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
 
 CREATE OR REPLACE FUNCTION start_board()
 RETURNS board AS $$
@@ -1437,56 +1760,6 @@ select pretty(empty_board());
 ```
 ';
 
-
-CREATE OR REPLACE FUNCTION pretty(text, uni bool default false, showfen bool default false)
-RETURNS text AS $$
-    SELECT replace(replace(replace(replace(replace(replace(replace(replace(
-            translate
-            (
-                 split_part($1, ' ', 1)
-                , case when $2 then '/KQRBNPkqrbnp' else '/' end
-                , case when $2
-                    then E'\n' || U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F'
-                    else E'\n'  
-                  end
-            )
-            , '8', case when not $2 then '........' else U&'.\200A.\200A.\200A.\200A.\200A.\200A.\200A.\200A' end) 
-            , '7', case when not $2 then '.......' else U&'.\200A.\200A.\200A.\200A.\200A.\200A.\200A' end) 
-            , '6', case when not $2 then '......' else U&'.\200A.\200A.\200A.\200A.\200A.\200A' end) 
-            , '5', case when not $2 then '.....' else U&'.\200A.\200A.\200A.\200A.\200A' end) 
-            , '4', case when not $2 then '....' else U&'.\200A.\200A.\200A.\200A' end) 
-            , '3', case when not $2 then '...' else U&'.\200A.\200A.\200A' end) 
-            , '2', case when not $2 then '..' else U&'.\200A.\200A' end) 
-            , '1', case when not $2 then '.' else U&'.\200A' end) 
-
-        || '  ' || split_part($1, ' ', 2)
-        || '  ' || split_part($1, ' ', 3)
-        || '  ' || split_part($1, ' ', 4)
-        || '  ' || split_part($1, ' ', 5)
-        || '  ' || split_part($1, ' ', 6)
-        || case when $3 then E'\n' || split_part($1::text, ' ', 1) else '' end
-        || E'\n\n'
-        
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-
-COMMENT ON FUNCTION pretty(text, bool, bool) IS '
-Converts fen string to a printable board. [sql]
-
-If uni is true then use unicode.
-If showfen is true add the fen string at the bottom of the board.
-';
-
-CREATE OR REPLACE FUNCTION pretty(board, uni bool default false, showfen bool default false)
-RETURNS text AS $$
-SELECT pretty($1::text, $2, $3)
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION pretty(board, bool, bool) IS '
-Converts fen string to a printable board. [sql]
-
-if *uni* is true then use unicode
-if *showfen* is true add the fen string at the bottom of the board
-';
-
 CREATE OR REPLACE FUNCTION invert(board)
 RETURNS board AS $$
 select REPLACE(TRANSLATE($1::text, 'pnbrqkPNBRQKw', 'PNBRQKpnbrqkb'), ' B ', ' w ')::board
@@ -1519,52 +1792,39 @@ SELECT pretty(invert(''rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0
 `TODO: handle en passant.`
 ';
 
-CREATE OR REPLACE FUNCTION squares()
-RETURNS setof square AS $$
-     SELECT (56 - (i/8)*8 + (i%8))::square  from generate_series(0, 63) as i;
+CREATE OR REPLACE FUNCTION files()
+RETURNS setof cfile AS $$
+    select f::cfile from (values ('a'),('b'),('c'),('d'),('e'),('f'),('g'),('h') ) as t (f);
 $$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION pretty(board, bool, bool) IS '
-Generates a set of squares in fen order.';
 
+CREATE OR REPLACE FUNCTION ranks()
+RETURNS setof rank AS $$
+    select f::rank from (values ('1'),('2'),('3'),('4'),('5'),('6'),('7'),('8') ) as t (f);
+$$ LANGUAGE SQL IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION white(piece)
-RETURNS cpiece AS
-$$
-    SELECT upper($1::piece::text)::cpiece;
-
-$$ LANGUAGE SQL STRICT IMMUTABLE;
-
-CREATE OR REPLACE FUNCTION white(piece[])
-RETURNS cpiece[] AS
-$$
-    SELECT array_agg(white) from 
+CREATE OR REPLACE FUNCTION pawn_max_ranks(board)
+RETURNS rank[] AS $$
+    select a || b 
+    from 
     (
-        SELECT white(unnest) from (SELECT unnest($1))t 
-    )tt
+        select 
+              array_agg(max_rank($1, f, 'P'))a
+            , array_agg(max_rank($1, f, 'p'))b 
+        from files() as f
+    )t ;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
 
-$$ LANGUAGE SQL STRICT IMMUTABLE;
-
-CREATE OR REPLACE FUNCTION black(piece)
-RETURNS cpiece AS
-$$
-    SELECT lower($1::piece::text)::cpiece;
-
-$$ LANGUAGE SQL STRICT IMMUTABLE;
-
-CREATE OR REPLACE FUNCTION black(piece[])
-RETURNS cpiece[] AS
-$$
-    SELECT array_agg(black) from 
+CREATE OR REPLACE FUNCTION pawn_max_ranks(board, int, int)
+RETURNS int[] AS $$
+    select a || b 
+    from 
     (
-        SELECT black(unnest) from (SELECT unnest($1))t 
-    )tt
-
-$$ LANGUAGE SQL STRICT IMMUTABLE;
-
-CREATE OR REPLACE FUNCTION bitarray(bit(64))
-RETURNS bit[] AS $$
-    SELECT string_to_array(($1)::text, NULL)::bit[]
+        select 
+              array_agg( coalesce(max_rank($1, f, 'P')::"char"::int, $2)) a
+            , array_agg( coalesce(max_rank($1, f, 'p')::"char"::int, $3)) b
+        from files() as f
+    )t ;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
-/*}}}*/
+/*}}}*//*}}}*/

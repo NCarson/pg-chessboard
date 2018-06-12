@@ -24,6 +24,8 @@ while getopts ":n" opt; do
   esac
 done
 
+dropdb $DB
+createdb $DB
 #make clean
 make
 sudo make uninstall
@@ -32,14 +34,11 @@ sudo make install
 #psql -dchess_test -f sql/chess_index.sql
 
 if [[ "$CHECK" -eq 1 ]]; then
-    make installcheck || psql -d$DB -f sql/chess_index.sql
+    make installcheck || psql -d$DB -f sql/chess_index.sql -v ON_ERROR_STOP=1
 fi
 
-dropdb $DB
-createdb $DB
-psql -d$DB -c"drop extension if exists chess_index cascade" >/dev/null
-psql -d$DB -c"create extension chess_index" >/dev/null
 sh doc/makedoc.sh
+psql -d$DB -c"create extension chess_index" >/dev/null
 psql -d$DB -c"create extension cube" >/dev/null
 psql -d$DB -c"create extension smlar" >/dev/null
 
