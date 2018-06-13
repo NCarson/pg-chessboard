@@ -223,6 +223,9 @@ cfile_out(PG_FUNCTION_ARGS)
     char 			f = PG_GETARG_CHAR(0);
     char            *result = palloc(2);
 
+    if (f < 0 || f > 7)
+        BAD_TYPE_OUT("cfile", f);
+
     result[0] = f + 'a';
     result[1] = '\0';
 
@@ -245,6 +248,10 @@ static char _rank_in(char r)
 square_to_rank(PG_FUNCTION_ARGS)
 {
     char 			s = PG_GETARG_CHAR(0);
+
+    if (s < 0 || s > 7)
+        BAD_TYPE_OUT("rank", s);
+
     PG_RETURN_CHAR(TO_RANK(s));
 }
 
@@ -678,7 +685,6 @@ static Board *_piecesquares_to_board(const char *footer, const Datum * input, co
     int                 k=0;
 
     INIT_BOARD(b, size);
-    b->pcount = size;
     _board_footer_in(b, footer);
 
     if (size > PIECES_MAX)
@@ -697,8 +703,7 @@ static Board *_piecesquares_to_board(const char *footer, const Datum * input, co
         SET_PIECE(b->pieces, k, p);
         k++;
     }
-    if (k != size)
-        CH_ERROR("_piecesquares_to_board: internal error: size:%d != pcount:%d", size, b->pcount);
+    b->pcount = k;
     //debug_bitboard(b->board);
     return b;
 }

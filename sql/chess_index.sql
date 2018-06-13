@@ -108,6 +108,12 @@ Can be cast to an int where ''a''=0.
 Supports =, <>, <, >, >=, <=, hash operations and btree operations.
 ';
 
+CREATE OR REPLACE FUNCTION files()
+RETURNS setof cfile AS $$
+    select f::cfile from (values ('a'),('b'),('c'),('d'),('e'),('f'),('g'),('h') ) as t (f);
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+
 CREATE CAST ("char" AS cfile) WITHOUT FUNCTION;
 CREATE CAST (cfile AS "char") WITHOUT FUNCTION as IMPLICIT;
 
@@ -238,6 +244,11 @@ Can be cast to an int where ''1''=0.
 
 CREATE CAST ("char" AS rank) WITHOUT FUNCTION;
 CREATE CAST (rank AS "char") WITHOUT FUNCTION;
+
+CREATE OR REPLACE FUNCTION ranks()
+RETURNS setof rank AS $$
+    select f::rank from (values ('1'),('2'),('3'),('4'),('5'),('6'),('7'),('8') ) as t (f);
+$$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE FUNCTION rank_eq(rank, rank)
 RETURNS boolean LANGUAGE internal IMMUTABLE as 'chareq';
@@ -1516,7 +1527,6 @@ FUNCTION        1       board_hash(board);/*}}}*/
 -- sql functions
  ****************************************************************************/
 /*{{{*/
-
 -----------------------------------------------------------------------------
 -- squares
 -----------------------------------------------------------------------------
@@ -1551,7 +1561,6 @@ RETURNS square[] AS $$
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION squares(adiagonal) IS 'Generates an array of squares that are members of the adiagonal. [sql]';
 /*}}}*/
-
 -----------------------------------------------------------------------------
 -- pretty
 -----------------------------------------------------------------------------
@@ -1665,7 +1674,10 @@ Returns unicode chess symbol of pieces. [sql]
 ';
 
 /*}}}*/
-
+-----------------------------------------------------------------------------
+-- side
+-----------------------------------------------------------------------------
+/*{{{*/
 CREATE OR REPLACE FUNCTION white(piece)
 RETURNS cpiece AS
 $$
@@ -1699,6 +1711,39 @@ $$
     )tt
 
 $$ LANGUAGE SQL STRICT IMMUTABLE;
+/*}}}*/
+-----------------------------------------------------------------------------
+-- diff
+-----------------------------------------------------------------------------
+/*{{{*/
+CREATE OR REPLACE FUNCTION diff(piecesquare[], piecesquare[])
+RETURNS piecesquare[] AS
+$$
+    SELECT COALESCE(array_agg(unnest), ARRAY[]::piecesquare[]) FROM (SELECT unnest($1) EXCEPT ALL SELECT unnest($2))t;
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION diff(cpiece[], cpiece[])
+RETURNS cpiece[] AS
+$$
+    SELECT COALESCE(array_agg(unnest), ARRAY[]::cpiece[]) FROM (SELECT unnest($1) EXCEPT ALL SELECT unnest($2))t;
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION diff(piece[], piece[])
+
+RETURNS piece[] AS
+$$
+    SELECT COALESCE(array_agg(unnest), ARRAY[]::piece[]) FROM (SELECT unnest($1) EXCEPT ALL SELECT unnest($2))t;
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION diff(board)
+RETURNS cpiece[] AS
+$$
+    SELECT COALESCE(
+           white(diff(pieces($1, 'w'::side)::cpiece[]::piece[], pieces($1, 'b'::side)::cpiece[]::piece[]))
+        || black(diff(pieces($1, 'b'::side)::cpiece[]::piece[], pieces($1, 'w'::side)::cpiece[]::piece[]))
+    , array[]::cpiece[])
+$$ LANGUAGE SQL STRICT IMMUTABLE;
+/*}}}*/
 
 CREATE OR REPLACE FUNCTION bitarray(bit(64))
 RETURNS bit[] AS $$
@@ -1792,15 +1837,6 @@ SELECT pretty(invert(''rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0
 `TODO: handle en passant.`
 ';
 
-CREATE OR REPLACE FUNCTION files()
-RETURNS setof cfile AS $$
-    select f::cfile from (values ('a'),('b'),('c'),('d'),('e'),('f'),('g'),('h') ) as t (f);
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-
-CREATE OR REPLACE FUNCTION ranks()
-RETURNS setof rank AS $$
-    select f::rank from (values ('1'),('2'),('3'),('4'),('5'),('6'),('7'),('8') ) as t (f);
-$$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION pawn_max_ranks(board)
 RETURNS rank[] AS $$
@@ -1826,5 +1862,43 @@ RETURNS int[] AS $$
     )t ;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
+CREATE OR REPLACE FUNCTION ranks_to_board(rank[])
+RETURNS board AS $$
+select 
+    board(array_agg(
+    (
+        case when r < 8 then 'p' else 'P' end  
+        || square((r%8)::int::"char"::cfile, p::rank)
+    )::piecesquare))
+from 
+(
+    select 
+         (row_number() over ()-1) r
+        , p 
+    from ( select unnest($1) p)t
+)tt;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION ranks_to_board(int[], int, int)
+RETURNS board AS $$
+select 
+    board(array_agg(
+    (
+        case 
+            when p != $2 and p != $3
+                then case when r < 8 then 'p' else 'P' end  
+            else
+                null
+        end
+        || square((r%8)::int::"char"::cfile, p::"char"::rank)
+    )::piecesquare))
+from 
+(
+    select 
+         (row_number() over ()-1) r
+        , p 
+    from ( select unnest($1) p)t
+)tt;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
 
 /*}}}*//*}}}*/

@@ -1,7 +1,4 @@
-
-set -e
-
-DB=chess_test
+set -ex
 
 #if [ -z "$PGDATABASE" ]
 #then
@@ -9,7 +6,12 @@ DB=chess_test
 #    exit 1
 #fi
 
+DB=chess_test
 CHECK=1
+USER='\"www-data\"'
+
+GAMES_DIREC='../games'
+SCIPY_DIREC='../scipy'
 
 while getopts ":n" opt; do
   case $opt in
@@ -26,20 +28,15 @@ done
 
 dropdb $DB
 createdb $DB
-#make clean
 make
 sudo make uninstall
 sudo make install
-#psql -dchess_test -c 'drop extension chess_index cascade'
-#psql -dchess_test -f sql/chess_index.sql
 
 if [[ "$CHECK" -eq 1 ]]; then
     make installcheck || psql -d$DB -f sql/chess_index.sql -v ON_ERROR_STOP=1
 fi
 
-sh doc/makedoc.sh
-psql -d$DB -c"create extension chess_index" >/dev/null
-psql -d$DB -c"create extension cube" >/dev/null
-psql -d$DB -c"create extension smlar" >/dev/null
+bash doc/makedoc.sh
 
-cd ../index && make test DIREC="./data/test" 
+cd $GAMES_DIREC && make DATA_DIREC="./data/test" DB="$DB"
+cd $SCIPY_DIREC && make USER=$USER DB=$DB
