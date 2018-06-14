@@ -1424,6 +1424,16 @@ Maximum rank for white is 8 and for black 1.';
 CREATE FUNCTION min_rank(board, cfile, cpiece)
 RETURNS rank AS '$libdir/chess_index', 'board_cpiece_min_rank' LANGUAGE C IMMUTABLE STRICT;
 
+CREATE TYPE cfiletype AS ENUM ('open', 'half-open-w', 'half-open-b', 'closed');
+
+CREATE FUNCTION _cfile_type(board, cfile)
+RETURNS text AS '$libdir/chess_index', 'board_cfile_type' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION cfile_type(board, cfile)
+RETURNS cfiletype AS $$
+    SELECT _cfile_type($1, $2)::cfiletype
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
 /*}}}*/
 /*---------------------------------------/
 /  ops                                   /

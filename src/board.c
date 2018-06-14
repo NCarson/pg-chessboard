@@ -59,6 +59,7 @@ PG_FUNCTION_INFO_V1(board_halfmove);
 PG_FUNCTION_INFO_V1(board_fiftyclock);
 PG_FUNCTION_INFO_V1(board_cpiece_max_rank);
 PG_FUNCTION_INFO_V1(board_cpiece_min_rank);
+PG_FUNCTION_INFO_V1(board_cfile_type);
 /*}}}*/
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
@@ -72,6 +73,7 @@ static const int        BISHOP_DIRS[] = {DIR_NW, DIR_SW, DIR_SE, DIR_NE};
 static const int        QUEEN_DIRS[] =  {DIR_N, DIR_S, DIR_E, DIR_W, DIR_NW, DIR_SW, DIR_SE, DIR_NE};
 
 static int _board_out(const Board * b, char * str);
+static char _board_cpiece_min_rank(const board_t * , const char, const cpiece_t );
  
 /*-------------------------------------------------------
  -      static
@@ -1149,16 +1151,11 @@ board_cpiece_max_rank(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
 }
 
-Datum
-board_cpiece_min_rank(PG_FUNCTION_ARGS)
+char
+_board_cpiece_min_rank(const board_t * board, const char file, const cpiece_t piece)
 {
-    const Board         *b = (Board *)PG_GETARG_POINTER(0);
-    const char          file = PG_GETARG_CHAR(1);
-    const cpiece_t      piece = PG_GETARG_CHAR(2);
     
-    board_t             *board = _bitboard_to_board(b);
     char                result=-1;
-    
 
     if (_cpiece_side(piece)== WHITE) {
         for (int i=0, j=56+file; i<8; i++)  {
@@ -1177,11 +1174,50 @@ board_cpiece_min_rank(PG_FUNCTION_ARGS)
             j+=8;
         }
     }
+    return result;
+}
+
+Datum
+board_cpiece_min_rank(PG_FUNCTION_ARGS)
+{
+    const Board         *b = (Board *)PG_GETARG_POINTER(0);
+    const char          file = PG_GETARG_CHAR(1);
+    const cpiece_t      piece = PG_GETARG_CHAR(2);
+    
+    board_t             *board = _bitboard_to_board(b);
+    char                result;
+    
+    result = _board_cpiece_min_rank(board, file, piece);
     pfree(board);
-    if (result != -1)
-        PG_RETURN_CHAR(result);
-    else
+    if (result==-1)
         PG_RETURN_NULL();
+    else
+        PG_RETURN_CHAR(result);
+
+}
+
+Datum
+board_cfile_type(PG_FUNCTION_ARGS)
+{
+    const Board         *b = (Board *)PG_GETARG_POINTER(0);
+    const char          file = PG_GETARG_CHAR(1);
+    
+    board_t             *board = _bitboard_to_board(b);
+    char                wr, br;
+    
+    wr = _board_cpiece_min_rank(board, file, WHITE_PAWN);
+    br = _board_cpiece_min_rank(board, file, BLACK_PAWN);
+    pfree(board);
+    if (wr == -1 && br == -1) //open
+        PG_RETURN_TEXT_P(cstring_to_text("open"));
+    else if(wr == -1 && br != -1) // half-open white
+        PG_RETURN_TEXT_P(cstring_to_text("half-open-w"));
+    else if(wr != -1 && br == -1) // half-open black
+        PG_RETURN_TEXT_P(cstring_to_text("half-open-b"));
+    else if(wr != -1 && br != -1) // closed
+        PG_RETURN_TEXT_P(cstring_to_text("half-open-closed"));
+    else
+        CH_ERROR("internal error in board_cfile_type");
 }
 
 /*}}}*/
