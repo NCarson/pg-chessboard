@@ -1491,6 +1491,38 @@ $$ LANGUAGE SQL IMMUTABLE STRICT;
 COMMENT ON FUNCTION bitboard_array(board, cpiece) IS 
 'Returns an array of size 64 with 1''s representing the occupancy of the piece in fen order. (sql)';
 
+CREATE FUNCTION board_to_int(board, cpiece)
+RETURNS INT8 AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION board_to_int(board, cpiece) IS 
+'Returns a 64 bit integer where its binary representation shows the occupancy of the board piece.
+
+```SQL
+select board_to_int(start_board(), ''r'')::bit(64);
+```
+```
+                           board_to_int                           
+------------------------------------------------------------------
+ 1000000100000000000000000000000000000000000000000000000000000000
+(1 row)
+```
+';
+
+CREATE FUNCTION hamming(board, board)
+RETURNS INT8 AS '$libdir/chess_index', 'board_hamming' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION hamming(board, board) IS '
+Returns the [hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of the pieces on the squares.
+
+```SQL
+select hamming(start_board(), empty_board());
+```
+```
+ hamming 
+---------
+      32
+(1 row)
+```
+';
+
 CREATE FUNCTION int_array(board)
 RETURNS int[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION int_array(board) IS 

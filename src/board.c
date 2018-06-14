@@ -60,6 +60,8 @@ PG_FUNCTION_INFO_V1(board_fiftyclock);
 PG_FUNCTION_INFO_V1(board_cpiece_max_rank);
 PG_FUNCTION_INFO_V1(board_cpiece_min_rank);
 PG_FUNCTION_INFO_V1(board_cfile_type);
+PG_FUNCTION_INFO_V1(board_to_int);
+PG_FUNCTION_INFO_V1(board_hamming);
 /*}}}*/
 
 #define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
@@ -79,6 +81,77 @@ static char _board_cpiece_min_rank(const board_t * , const char, const cpiece_t 
  -      static
  -------------------------------------------------------*/
 /*{{{*/
+
+//popcount from -- https://github.com/fake-name/pg-spgist_hamming
+static int
+_hamming(uint64 a, uint64 b)
+{
+    /*
+    Compute number of bits that are not common between `a` and `b`.
+    return value is a plain integer
+    */
+    uint64          x = (a ^ b);
+    int             ret=0;
+
+#ifdef  __GNUC__ //if gcc you get to go fast
+    ret = __builtin_popcountll (x); 
+#else // else you go slow....
+    //_mm_popcnt_u64 is for windows V.S.
+    for (; x > 0; x >>= 1) {
+        ret += x & 1;
+    }
+#endif
+    return ret;
+}
+
+static bitboard_t
+_board_to_bits_piece(const Board * b, const cpiece_t piece)
+{
+    board_t             *board = _bitboard_to_board(b);
+    bitboard_t          bboard=0;
+
+    for (int i=0; i<SQUARE_MAX; i++)
+    {
+        if (board[i]==piece)
+            SET_BIT64(bboard, SQUARE_MAX-1-i);
+    }
+    pfree(board);
+    return bboard;
+}
+
+static bitboard_t
+_board_to_bits(const Board * b)
+{
+    board_t             *board = _bitboard_to_board(b);
+    bitboard_t          bboard=0;
+
+    for (int i=0; i<SQUARE_MAX; i++)
+    {
+        if (board[i])
+            SET_BIT64(bboard, SQUARE_MAX-1-i);
+    }
+    pfree(board);
+    return bboard;
+}
+
+Datum
+board_to_int(PG_FUNCTION_ARGS)
+{
+    const Board         *b = (Board *)PG_GETARG_POINTER(0);
+    const cpiece_t      piece = PG_GETARG_CHAR(1);
+    
+    PG_RETURN_INT64(_board_to_bits_piece(b, piece));
+}
+
+Datum
+board_hamming(PG_FUNCTION_ARGS)
+{
+    const Board         *a = (Board *)PG_GETARG_POINTER(0);
+    const Board         *b = (Board *)PG_GETARG_POINTER(1);
+    
+    PG_RETURN_INT32(_hamming(_board_to_bits(a), _board_to_bits(b)));
+
+}
 
 static char *_board_pieceindex(const Board * b, side_t go)/*{{{*/
 {
