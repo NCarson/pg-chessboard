@@ -1508,13 +1508,23 @@ COMMENT ON FUNCTION max_rank(board, cfile, cpiece) IS
 
 Maximum rank for white is 8 and for black 1.';
 
+CREATE OR REPLACE FUNCTION max_rank(board, cpiece)
+RETURNS rank[] AS $$
+    SELECT array_agg(ft) FROM (SELECT max_rank($1, files(), $2) ft)t;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
 CREATE FUNCTION min_rank(board, cfile, cpiece)
 RETURNS rank AS '$libdir/chess_index', 'board_cpiece_min_rank' LANGUAGE C IMMUTABLE STRICT;
-COMMENT ON FUNCTION mIN_rank(board, cfile, cpiece) IS 
+COMMENT ON FUNCTION min_rank(board, cfile, cpiece) IS 
 'Returns minimum rank of a cpiece on a file relative to its side
 
 Minimum rank for white is 1 and for black 7.
 ';
+
+CREATE OR REPLACE FUNCTION mIN_rank(board, cpiece)
+RETURNS rank[] AS $$
+    SELECT array_agg(ft) FROM (SELECT mIN_rank($1, files(), $2) ft)t;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE FUNCTION cfile_type(board, cfile)
 RETURNS CHAR AS '$libdir/chess_index', 'board_cfile_type' LANGUAGE C IMMUTABLE STRICT;
@@ -1637,26 +1647,31 @@ FUNCTION        1       board_hash(board);/*}}}*/
 -- pretty
 -----------------------------------------------------------------------------
 /*{{{*/
+
 CREATE OR REPLACE FUNCTION pretty(text, uni bool default false, showfen bool default false)
 RETURNS text AS $$
     SELECT replace(replace(replace(replace(replace(replace(replace(replace(
             translate
             (
-                 split_part($1, ' ', 1)
+                CASE WHEN $2 THEN 
+                    split_part($1, ' ', 1)
+                ELSE 
+                    regexp_replace(split_part($1, ' ', 1), '([pnbrqkPNBRQK])', '\1 ','g') 
+                end
                 , case when $2 then '/KQRBNPkqrbnp' else '/' end
                 , case when $2
                     then E'\n' || U&'\2654\2655\2656\2657\2658\2659\265A\265B\265C\265D\265E\265F'
                     else E'\n'  
                   end
             )
-            , '8', case when not $2 then '........' else U&'.\200A.\200A.\200A.\200A.\200A.\200A.\200A.\200A' end) 
-            , '7', case when not $2 then '.......' else U&'.\200A.\200A.\200A.\200A.\200A.\200A.\200A' end) 
-            , '6', case when not $2 then '......' else U&'.\200A.\200A.\200A.\200A.\200A.\200A' end) 
-            , '5', case when not $2 then '.....' else U&'.\200A.\200A.\200A.\200A.\200A' end) 
-            , '4', case when not $2 then '....' else U&'.\200A.\200A.\200A.\200A' end) 
-            , '3', case when not $2 then '...' else U&'.\200A.\200A.\200A' end) 
-            , '2', case when not $2 then '..' else U&'.\200A.\200A' end) 
-            , '1', case when not $2 then '.' else U&'.\200A' end) 
+            , '8', case when not $2 then '. . . . . . . . ' else U&'\25a2\25a2\25a2\25a2\25a2\25a2\25a2\25a2' END)
+            , '7', case when not $2 then '. . . . . . . ' else U&'\25a2\25a2\25a2\25a2\25a2\25a2\25a2' END)
+            , '6', case when not $2 then '. . . . . . ' else U&'\25a2\25a2\25a2\25a2\25a2\25a2' end) 
+            , '5', case when not $2 then '. . . . . ' else U&'\25a2\25a2\25a2\25a2\25a2' end) 
+            , '4', case when not $2 then '. . . . ' else U&'\25a2\25a2\25a2\25a2' end) 
+            , '3', case when not $2 then '. . . ' else U&'\25a2\25a2\25a2' end) 
+            , '2', case when not $2 then '. . ' else U&'\25a2\25a2' end) 
+            , '1', case when not $2 then '. ' else U&'\25a2' end) 
 
         || '  ' || split_part($1, ' ', 2)
         || '  ' || split_part($1, ' ', 3)
@@ -1664,7 +1679,7 @@ RETURNS text AS $$
         || '  ' || split_part($1, ' ', 5)
         || '  ' || split_part($1, ' ', 6)
         || case when $3 then E'\n' || split_part($1::text, ' ', 1) else '' end
-        || E'\n\n'
+        || E'\n'
         
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
