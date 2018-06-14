@@ -1084,10 +1084,13 @@ AS '$libdir/chess_index'
 LANGUAGE C IMMUTABLE STRICT;
 CREATE CAST (adiagonal AS int4) WITH FUNCTION char_to_int(adiagonal);
 /*}}}*/
-
 /****************************************************************************
 -- board: displays as fen, holds position
  ****************************************************************************/
+/*{{{*/
+/*---------------------------------------/
+/  type
+/---------------------------------------*/
 /*{{{*/
 CREATE FUNCTION board_in(cstring)
 RETURNS board AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
@@ -1185,6 +1188,7 @@ about 3k to store one game or 3GB per million games. Then a years worth of
 games would take 720 GB. Which are tractable numbers.
 
 ';
+/*}}}*/
 
 /*---------------------------------------/
 /  pieces functions                      /
@@ -1304,6 +1308,97 @@ $$ LANGUAGE SQL IMMUTABLE STRICT;
 /*}}}*/
 
 /*---------------------------------------/
+/  sql functions
+/---------------------------------------*/
+/*{{{*/
+CREATE OR REPLACE FUNCTION start_board()
+RETURNS board AS $$
+    SELECT 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION start_board() IS '
+Returns initial position of standard chess. [sql]
+
+```sql
+chess_test=# select pretty(start_board());
+```
+```
+           pretty           
+----------------------------
+ rnbqkbnr                  +
+ pppppppp                  +
+ ........                  +
+ ........                  +
+ ........                  +
+ ........                  +
+ PPPPPPPP                  +
+ RNBQKBNR  w  KQkq  -  0  1+
+                           +
+ 
+(1 row)
+```
+';
+
+CREATE OR REPLACE FUNCTION empty_board()
+RETURNS board AS $$
+    SELECT '8/8/8/8/8/8/8/8'::board
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION empty_board() IS '
+Returns a board with no pieces. [sql]
+
+```sql
+select pretty(empty_board());
+```
+```
+        pretty         
+-----------------------
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........             +
+ ........  w  -  -    +
+                      +
+ 
+(1 row)
+```
+';
+
+CREATE OR REPLACE FUNCTION invert(board)
+RETURNS board AS $$
+select REPLACE(TRANSLATE($1::text, 'pnbrqkPNBRQKw', 'PNBRQKpnbrqkb'), ' B ', ' w ')::board
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION invert(board) IS '
+Reverses fen string, colors, and side to move. [sql]
+
+A white piece on a1 will become a black piece on h8.
+With this method we can treat all positions with
+white now meaning: *the side with the move* 
+\(Classifying Chess Positions, De Sa, 2012\).
+
+Black''s go after 1. e4:
+```sql
+SELECT pretty(invert(''rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1''));
+```
+```
+           pretty            
+        -----------------------------
+         RNBQKBNR                   +
+         PPPPPPPP                   +
+         ........                   +
+         ........                   +
+         ....p...                   +
+         ........                   +
+         pppp.ppp                   +
+         rnbqkbnr  w  KQkq  e3  0  1+
+```
+
+`TODO: handle en passant.`
+';
+/*}}}*/
+
+/*---------------------------------------/
 /  functions                             /
 /---------------------------------------*/
 /*{{{*/
@@ -1350,14 +1445,6 @@ CREATE FUNCTION fiftyclock(board)
 RETURNS int AS '$libdir/chess_index', 'board_fiftyclock' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION fiftyclock(board) IS 
 'Returns the the fifty-move rule halfmove clock';
-
-/*
-CREATE FUNCTION halfmove(board)
-RETURNS int AS '$libdir/chess_index', 'board_halfmove' LANGUAGE C IMMUTABLE STRICT;
-COMMENT ON FUNCTION halfmove(board) IS 
-'Returns the halfmove clock number.
-It will be zero if it was not set in the fen';
-*/
 
 CREATE FUNCTION score(board)
 RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
@@ -1423,18 +1510,28 @@ Maximum rank for white is 8 and for black 1.';
 
 CREATE FUNCTION min_rank(board, cfile, cpiece)
 RETURNS rank AS '$libdir/chess_index', 'board_cpiece_min_rank' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION mIN_rank(board, cfile, cpiece) IS 
+'Returns minimum rank of a cpiece on a file relative to its side
 
-CREATE TYPE cfiletype AS ENUM ('open', 'half-open-w', 'half-open-b', 'closed');
+Minimum rank for white is 1 and for black 7.
+';
 
-CREATE FUNCTION _cfile_type(board, cfile)
-RETURNS text AS '$libdir/chess_index', 'board_cfile_type' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION cfile_type(board, cfile)
+RETURNS CHAR AS '$libdir/chess_index', 'board_cfile_type' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION cfile_type(board, cfile) IS '
+Returns whether the file is open, closed, or half-open.
 
-CREATE OR REPLACE FUNCTION cfile_type(board, cfile)
-RETURNS cfiletype AS $$
-    SELECT _cfile_type($1, $2)::cfiletype
+Returns "o", "c", "w", "b" where the file is open, closed, half-open 
+with a black pawn, or half-open with a white pawn respectively.
+';
+
+CREATE OR REPLACE FUNCTION cfile_type(board)
+RETURNS CHAR[] AS $$
+    SELECT array_agg(ft) FROM (SELECT cfile_type($1, files()) ft)t;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 /*}}}*/
+
 /*---------------------------------------/
 /  ops                                   /
 /---------------------------------------*/
@@ -1532,45 +1629,10 @@ DEFAULT FOR TYPE board USING hash AS
 OPERATOR        1       = ,
 FUNCTION        1       board_hash(board);/*}}}*/
 /*}}}*/
-
 /****************************************************************************
 -- sql functions
- ****************************************************************************/
+*****************************************************************************/
 /*{{{*/
------------------------------------------------------------------------------
--- squares
------------------------------------------------------------------------------
-/*{{{*/
-CREATE OR REPLACE FUNCTION squares()
-RETURNS setof square AS $$
-     SELECT (56 - (i/8)*8 + (i%8))::square  from generate_series(0, 63) as i;
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION squares() IS 'Generates a set of squares in fen order. [sql]';
-
-CREATE OR REPLACE FUNCTION squares("rank")
-RETURNS square[] AS $$
-    select array_agg(squares) from (select squares())t  where squares::rank = $1
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION squares(rank) IS 'Generates an array of squares that are members of the rank. [sql]';
-
-CREATE OR REPLACE FUNCTION squares(cfile)
-RETURNS square[] AS $$
-    select array_agg(squares) from (select squares())t  where squares::cfile = $1
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION squares(cfile) IS 'Generates an array of squares that are members of the file. [sql]';
-
-CREATE OR REPLACE FUNCTION squares(diagonal)
-RETURNS square[] AS $$
-    select array_agg(squares) from (select squares())t  where squares::diagonal::int = $1::int
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION squares(diagonal) IS 'Generates an array of squares that are members of the diagonal. [sql]';
-
-CREATE OR REPLACE FUNCTION squares(adiagonal)
-RETURNS square[] AS $$
-    select array_agg(squares) from (select squares())t  where squares::adiagonal::int = $1::int
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION squares(adiagonal) IS 'Generates an array of squares that are members of the adiagonal. [sql]';
-/*}}}*/
 -----------------------------------------------------------------------------
 -- pretty
 -----------------------------------------------------------------------------
@@ -1754,99 +1816,43 @@ $$
     , array[]::cpiece[])
 $$ LANGUAGE SQL STRICT IMMUTABLE;
 /*}}}*/
+-----------------------------------------------------------------------------
+-- squares
+-----------------------------------------------------------------------------
+/*{{{*/
+CREATE OR REPLACE FUNCTION squares()
+RETURNS setof square AS $$
+     SELECT (56 - (i/8)*8 + (i%8))::square  from generate_series(0, 63) as i;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION squares() IS 'Generates a set of squares in fen order. [sql]';
+
+CREATE OR REPLACE FUNCTION squares("rank")
+RETURNS square[] AS $$
+    select array_agg(squares) from (select squares())t  where squares::rank = $1
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION squares(rank) IS 'Generates an array of squares that are members of the rank. [sql]';
+
+CREATE OR REPLACE FUNCTION squares(cfile)
+RETURNS square[] AS $$
+    select array_agg(squares) from (select squares())t  where squares::cfile = $1
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION squares(cfile) IS 'Generates an array of squares that are members of the file. [sql]';
+
+CREATE OR REPLACE FUNCTION squares(diagonal)
+RETURNS square[] AS $$
+    select array_agg(squares) from (select squares())t  where squares::diagonal::int = $1::int
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION squares(diagonal) IS 'Generates an array of squares that are members of the diagonal. [sql]';
+
+CREATE OR REPLACE FUNCTION squares(adiagonal)
+RETURNS square[] AS $$
+    select array_agg(squares) from (select squares())t  where squares::adiagonal::int = $1::int
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+COMMENT ON FUNCTION squares(adiagonal) IS 'Generates an array of squares that are members of the adiagonal. [sql]';
+/*}}}*/
 
 CREATE OR REPLACE FUNCTION bitarray(bit(64))
 RETURNS bit[] AS $$
     SELECT string_to_array(($1)::text, NULL)::bit[]
 $$ LANGUAGE SQL IMMUTABLE STRICT;
-
-
-CREATE OR REPLACE FUNCTION start_board()
-RETURNS board AS $$
-    SELECT 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'::board
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION start_board() IS '
-Returns initial position of standard chess. [sql]
-
-```sql
-chess_test=# select pretty(start_board());
-```
-```
-           pretty           
-----------------------------
- rnbqkbnr                  +
- pppppppp                  +
- ........                  +
- ........                  +
- ........                  +
- ........                  +
- PPPPPPPP                  +
- RNBQKBNR  w  KQkq  -  0  1+
-                           +
- 
-(1 row)
-```
-';
-
-CREATE OR REPLACE FUNCTION empty_board()
-RETURNS board AS $$
-    SELECT '8/8/8/8/8/8/8/8'::board
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION empty_board() IS '
-Returns a board with no pieces. [sql]
-
-```sql
-select pretty(empty_board());
-```
-```
-        pretty         
------------------------
- ........             +
- ........             +
- ........             +
- ........             +
- ........             +
- ........             +
- ........             +
- ........  w  -  -    +
-                      +
- 
-(1 row)
-```
-';
-
-CREATE OR REPLACE FUNCTION invert(board)
-RETURNS board AS $$
-select REPLACE(TRANSLATE($1::text, 'pnbrqkPNBRQKw', 'PNBRQKpnbrqkb'), ' B ', ' w ')::board
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION invert(board) IS '
-Reverses fen string, colors, and side to move. [sql]
-
-A white piece on a1 will become a black piece on h8.
-With this method we can treat all positions with
-white now meaning: *the side with the move* 
-\(Classifying Chess Positions, De Sa, 2012\).
-
-Black''s go after 1. e4:
-```sql
-SELECT pretty(invert(''rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1''));
-```
-```
-           pretty            
-        -----------------------------
-         RNBQKBNR                   +
-         PPPPPPPP                   +
-         ........                   +
-         ........                   +
-         ....p...                   +
-         ........                   +
-         pppp.ppp                   +
-         rnbqkbnr  w  KQkq  e3  0  1+
-```
-
-`TODO: handle en passant.`
-';
-
-
-
-/*}}}*//*}}}*/
+/*}}}*/

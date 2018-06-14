@@ -1208,14 +1208,14 @@ board_cfile_type(PG_FUNCTION_ARGS)
     wr = _board_cpiece_min_rank(board, file, WHITE_PAWN);
     br = _board_cpiece_min_rank(board, file, BLACK_PAWN);
     pfree(board);
-    if (wr == -1 && br == -1) //open
-        PG_RETURN_TEXT_P(cstring_to_text("open"));
+    if (wr == -1 && br == -1)     //open
+        PG_RETURN_TEXT_P(cstring_to_text("o"));
     else if(wr == -1 && br != -1) // half-open white
-        PG_RETURN_TEXT_P(cstring_to_text("half-open-w"));
+        PG_RETURN_TEXT_P(cstring_to_text("w"));
     else if(wr != -1 && br == -1) // half-open black
-        PG_RETURN_TEXT_P(cstring_to_text("half-open-b"));
+        PG_RETURN_TEXT_P(cstring_to_text("b"));
     else if(wr != -1 && br != -1) // closed
-        PG_RETURN_TEXT_P(cstring_to_text("half-open-closed"));
+        PG_RETURN_TEXT_P(cstring_to_text("c"));
     else
         CH_ERROR("internal error in board_cfile_type");
 }
