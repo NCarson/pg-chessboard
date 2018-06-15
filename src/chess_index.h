@@ -221,5 +221,7 @@ void            debug_board(const board_t * b);
 void            debug_bits(uint64 a, unsigned char bits);
 char            _cfile_in(char f);
 
+int             hamming_uint64(uint64 a, uint64 b);
+
 #endif
 

@@ -82,27 +82,6 @@ static char _board_cpiece_min_rank(const board_t * , const char, const cpiece_t 
  -------------------------------------------------------*/
 /*{{{*/
 
-//popcount from -- https://github.com/fake-name/pg-spgist_hamming
-static int
-_hamming(uint64 a, uint64 b)
-{
-    /*
-    Compute number of bits that are not common between `a` and `b`.
-    return value is a plain integer
-    */
-    uint64          x = (a ^ b);
-    int             ret=0;
-
-#ifdef  __GNUC__ //if gcc you get to go fast
-    ret = __builtin_popcountll (x); 
-#else // else you go slow....
-    //_mm_popcnt_u64 is for windows V.S.
-    for (; x > 0; x >>= 1) {
-        ret += x & 1;
-    }
-#endif
-    return ret;
-}
 
 static bitboard_t
 _board_to_bits_piece(const Board * b, const cpiece_t piece)
@@ -149,7 +128,7 @@ board_hamming(PG_FUNCTION_ARGS)
     const Board         *a = (Board *)PG_GETARG_POINTER(0);
     const Board         *b = (Board *)PG_GETARG_POINTER(1);
     
-    PG_RETURN_INT32(_hamming(_board_to_bits(a), _board_to_bits(b)));
+    PG_RETURN_INT32(hamming_uint64(_board_to_bits(a), _board_to_bits(b)));
 
 }
 

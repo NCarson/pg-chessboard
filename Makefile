@@ -1,7 +1,7 @@
 
 EXTENSION 		= chess_index
 MODULE_big   	= chess_index
-OBJS         	= src/chess_index.o src/board.o src/types.o
+OBJS         	= src/chess_index.o src/board.o src/types.o src/distance.o
 DATA 		 	= sql/chess_index--0.0.1.sql
 
 REGRESS_OPTS  	= --inputdir=test         \

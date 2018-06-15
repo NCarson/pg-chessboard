@@ -13,6 +13,25 @@ END $$;
 */
 
 /****************************************************************************
+-- util
+ ****************************************************************************/
+/*{{{*/
+CREATE OR REPLACE FUNCTION hamming(INT[], INT[])
+RETURNS INT8 AS '$libdir/chess_index', 'hamming_arr_byvalue' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION hamming(INT8, INT8)
+RETURNS int AS '$libdir/chess_index', 'hamming_int64' LANGUAGE C IMMUTABLE STRICT;
+
+
+DROP FUNCTION IF EXISTS jaccard(INT8, INT8);
+CREATE OR REPLACE FUNCTION jaccard(INT8, INT8)
+RETURNS float8 AS '$libdir/chess_index', 'jaccard_uint64' LANGUAGE C IMMUTABLE STRICT;
+
+DROP FUNCTION IF exists jaccard(INT[], INT[]);
+CREATE OR REPLACE FUNCTION jaccard(INT[], INT[])
+RETURNS float8 AS '$libdir/chess_index', 'jaccard_arr_byvalue' LANGUAGE C IMMUTABLE STRICT;
+/*}}}*/
+/****************************************************************************
 -- side : white or black
  ****************************************************************************/
 /*{{{*/
