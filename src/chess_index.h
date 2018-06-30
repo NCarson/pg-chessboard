@@ -111,12 +111,6 @@
 #define FROM_BB_IDX(i) ( 63 - ((i)/8)*8 - (7 - (i)%8))  // from cpiece board to square idx
 #define TO_BB_IDX(i) (56 - (i/8)*8 + (i%8))             // from square idx to bb idx
 
-#define PIECE_SIZE(k) ((k)/2 + ((k)%2))
-#define BOARD_SIZE(k) (PIECE_SIZE(k) + sizeof(Board))
-#define INIT_BOARD(b, k) do { \
-        b = (Board*)palloc(BOARD_SIZE(k)); memset(b, 0, BOARD_SIZE(k)); memset(b->pieces,0,PIECE_SIZE(k)); SET_VARSIZE(b, BOARD_SIZE(k)); \
-    } while(0)
-
 #define DIR_N   8
 #define DIR_S  -8
 #define DIR_W  -1
@@ -211,8 +205,6 @@ piece_t         _piece_type(const cpiece_t p);
 piece_t         _piece_in(char c);
 char            _piece_char(const piece_t p);
 
-board_t *       _bitboard_to_board(const Board *);
-bitboard_t      _board_to_bitboard(pieces_t * pieces, const board_t * board);
 Board *         _init_board(Board * b, int psize);
 void            _board_footer_in(Board * b, char * str);
 

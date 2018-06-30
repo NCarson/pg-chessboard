@@ -33,7 +33,7 @@ sudo make uninstall
 sudo make install
 
 if [[ "$CHECK" -eq 1 ]]; then
-    make installcheck || psql -d$DB -f sql/chess_index.sql -v ON_ERROR_STOP=1
+    make installcheck #|| psql -d$DB -f sql/chess_index.sql -v ON_ERROR_STOP=1
 fi
 
 bash doc/makedoc.sh

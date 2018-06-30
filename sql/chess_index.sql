@@ -1,7 +1,7 @@
 
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
 
---\echo Use "CREATE EXTENSION chess_index" to load this file. \quit
+\echo Use "CREATE EXTENSION chess_index" to load this file. \quit
 
 ---set client_min_messages=DEBUG4;
 --drop extension if exists chess_index cascade;
@@ -22,7 +22,6 @@ RETURNS INT8 AS '$libdir/chess_index', 'hamming_arr_byvalue' LANGUAGE C IMMUTABL
 CREATE OR REPLACE FUNCTION hamming(INT8, INT8)
 RETURNS int AS '$libdir/chess_index', 'hamming_int64' LANGUAGE C IMMUTABLE STRICT;
 
-
 DROP FUNCTION IF EXISTS jaccard(INT8, INT8);
 CREATE OR REPLACE FUNCTION jaccard(INT8, INT8)
 RETURNS float8 AS '$libdir/chess_index', 'jaccard_uint64' LANGUAGE C IMMUTABLE STRICT;
@@ -30,6 +29,8 @@ RETURNS float8 AS '$libdir/chess_index', 'jaccard_uint64' LANGUAGE C IMMUTABLE S
 DROP FUNCTION IF exists jaccard(INT[], INT[]);
 CREATE OR REPLACE FUNCTION jaccard(INT[], INT[])
 RETURNS float8 AS '$libdir/chess_index', 'jaccard_arr_byvalue' LANGUAGE C IMMUTABLE STRICT;
+
+
 /*}}}*/
 /****************************************************************************
 -- side : white or black
@@ -1426,6 +1427,11 @@ RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION footer(board) IS 
 'Returns the the fen string after the first board field.';
 
+CREATE FUNCTION moveless(board)
+RETURNS board AS '$libdir/chess_index', 'board_moveless' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION moveless(board) IS 
+'Returns the board with move and halmove move clock set to zero.';
+
 CREATE FUNCTION pcount(board)
 RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION pcount(board) IS 
@@ -1491,7 +1497,7 @@ COMMENT ON FUNCTION board(piecesquare[]) IS
 CREATE CAST (piecesquare[] as board) WITH FUNCTION board(piecesquare[]);
 
 CREATE FUNCTION pfilter(board, pfilter)
-RETURNS board AS '$libdir/chess_index', 'remove_pieces' LANGUAGE C IMMUTABLE STRICT;
+RETURNS board AS '$libdir/chess_index', 'board_remove_pieces' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION pfilter(board, pfilter) IS 
 'Returns a board given the pfilter.';
 

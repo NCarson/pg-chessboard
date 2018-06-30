@@ -47,7 +47,7 @@ PG_FUNCTION_INFO_V1(_pieces_piece);
 PG_FUNCTION_INFO_V1(_pieces_square);
 PG_FUNCTION_INFO_V1(_pieces_squares);
 PG_FUNCTION_INFO_V1(board_to_fen);
-PG_FUNCTION_INFO_V1(remove_pieces);
+PG_FUNCTION_INFO_V1(board_remove_pieces);
 PG_FUNCTION_INFO_V1(heatmap);
 PG_FUNCTION_INFO_V1(_attacks);
 PG_FUNCTION_INFO_V1(_mobility);
@@ -62,12 +62,20 @@ PG_FUNCTION_INFO_V1(board_cpiece_min_rank);
 PG_FUNCTION_INFO_V1(board_cfile_type);
 PG_FUNCTION_INFO_V1(board_to_int);
 PG_FUNCTION_INFO_V1(board_hamming);
+PG_FUNCTION_INFO_V1(board_moveless);
 /*}}}*/
-
-#define SIZEOF_PIECES(k) ((k)/2 + (k)%2)
-#define SIZEOF_BOARD(k) (sizeof(Board) + SIZEOF_PIECES(k))
+/*-------------------------------------------------------
+ -      defines
+ -------------------------------------------------------*/
+/*{{{*/
+#define PIECE_SIZE(k) ((k)/2 + ((k)%2))
+#define BOARD_SIZE(k) (PIECE_SIZE(k) + sizeof(Board))
 #define CHANGED_RANK(s, ss) ((s)/8 != (ss)/8)
 #define CHANGED_FILE(s, ss) ((s)%8 != (ss)%8)
+
+#define INIT_BOARD(b, k) do { \
+        b = (Board*)palloc(BOARD_SIZE(k)); memset(b, 0, BOARD_SIZE(k)); memset(b->pieces,0,PIECE_SIZE(k)); SET_VARSIZE(b, BOARD_SIZE(k)); \
+    } while(0)
 
 static const int        KNIGHT_DIRS[] = {6, 15, 17, 10, -6, -15, -17, -10};
 static const int        ROOK_DIRS[] =   {DIR_N, DIR_S, DIR_E, DIR_W};
@@ -76,12 +84,60 @@ static const int        QUEEN_DIRS[] =  {DIR_N, DIR_S, DIR_E, DIR_W, DIR_NW, DIR
 
 static int _board_out(const Board * b, char * str);
 static char _board_cpiece_min_rank(const board_t * , const char, const cpiece_t );
- 
+
+ /*}}}*/
 /*-------------------------------------------------------
  -      static
  -------------------------------------------------------*/
 /*{{{*/
 
+static bitboard_t 
+_board_to_bitboard(pieces_t * pieces, const board_t * board)
+{
+
+    bitboard_t          bboard=0;
+
+    for (int i=0, k=0; i<SQUARE_MAX; i++) {
+        if (board[i] != NO_CPIECE) {
+            SET_BIT64(bboard, i);
+            SET_PIECE(pieces, k, board[i]);
+            k++;
+        }
+        if (k> PIECES_MAX)
+            CH_ERROR("_board_to_bitboard: internal error: too many pieces :%i", k);
+    }
+    return bboard;
+}
+
+static inline void
+_copy_board(const Board * a, Board * b)
+{
+    memcpy(b, a, BOARD_SIZE(a->pcount));
+    for (int i=0; i<a->pcount; i++) {
+        SET_PIECE(b->pieces, i, GET_PIECE(a->pieces, i));
+    }
+}
+
+
+//XXX needs to be pfreed
+static board_t *
+_bitboard_to_board(const Board * b)
+{
+	unsigned char		k=0;
+    board_t             *board=(board_t *) palloc(SQUARE_MAX);
+
+    for (int i=SQUARE_MAX; i>0; i--) {
+        if (CHECK_BIT(b->board, i-1)) {
+            board[SQUARE_MAX-i] = GET_PIECE(b->pieces, k);
+            k++;
+        } else {
+            board[SQUARE_MAX-i] = NO_CPIECE;
+        }
+        if (k > PIECES_MAX)
+            CH_ERROR("_bitboard_to_board: internal error: too many pieces :%i", k);
+    }
+    return board;
+}
 
 static bitboard_t
 _board_to_bits_piece(const Board * b, const cpiece_t piece)
@@ -429,8 +485,7 @@ board_out(PG_FUNCTION_ARGS)
 
 static int 
 
-/*}}}*/
-_board_out(const Board * b, char * str)/*{{{*/
+_board_out(const Board * b, char * str)
 {
     int             i;
     unsigned char   j=0, k=0, empties=0, s, piece;
@@ -720,9 +775,7 @@ void _board_footer_in(Board * b, char * str)
 
     if (*(ptr))
         CH_ERROR("extra characters after last field in fen footer: '%s'", str);
-}
-
-/*}}}*/
+}/*}}}*/
 /*-------------------------------------------------------
  -      functions
  -------------------------------------------------------*/
@@ -925,7 +978,7 @@ _pieces_squares(PG_FUNCTION_ARGS)
 	bool 				*valsNullFlags;     // List of "is null" flags for the array contents:
 	int 				valsLength;         // The size of the input array:
 
-    ArrayType       *a;
+    ArrayType           *a;
     const Board         *b = (Board *) PG_GETARG_POINTER(0);
 	Datum               *d = (Datum *) palloc(sizeof(Datum) * b->pcount);
     uint16			    *pieces= _board_pieces(b);
@@ -980,7 +1033,20 @@ footer(PG_FUNCTION_ARGS)
 }
 
 Datum
-remove_pieces(PG_FUNCTION_ARGS)
+board_moveless(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    Board           *result;
+
+    INIT_BOARD(result, b->pcount);
+    _copy_board(b, result);
+    result->move = 0;
+    result->last_capt = 0;
+    PG_RETURN_POINTER(result);
+}
+
+Datum
+board_remove_pieces(PG_FUNCTION_ARGS)
 {
 
     const Board     *b = (Board *) PG_GETARG_POINTER(0);
@@ -1002,6 +1068,7 @@ remove_pieces(PG_FUNCTION_ARGS)
             }
         }
     }
+    pfree(board);
 
     INIT_BOARD(result, b->pcount - n);
     result->board = _board_to_bitboard(result->pieces, board);

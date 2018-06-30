@@ -420,41 +420,7 @@ char _piece_char(const piece_t p)
 * 		board
 ********************************************************/
 /*{{{*/
-//XXX needs to be pfreed
-board_t *_bitboard_to_board(const Board * b)
-{
-	unsigned char		k=0;
-    board_t             *board=(board_t *) palloc(SQUARE_MAX);
 
-    for (int i=SQUARE_MAX; i>0; i--) {
-        if (CHECK_BIT(b->board, i-1)) {
-            board[SQUARE_MAX-i] = GET_PIECE(b->pieces, k);
-            k++;
-        } else {
-            board[SQUARE_MAX-i] = NO_CPIECE;
-        }
-        if (k > PIECES_MAX)
-            CH_ERROR("_bitboard_to_board: internal error: too many pieces :%i", k);
-    }
-    return board;
-}
-
-bitboard_t _board_to_bitboard(pieces_t * pieces, const board_t * board)
-{
-
-    bitboard_t          bboard=0;
-
-    for (int i=0, k=0; i<SQUARE_MAX; i++) {
-        if (board[i] != NO_CPIECE) {
-            SET_BIT64(bboard, i);
-            SET_PIECE(pieces, k, board[i]);
-            k++;
-        }
-        if (k> PIECES_MAX)
-            CH_ERROR("_board_to_bitboard: internal error: too many pieces :%i", k);
-    }
-    return bboard;
-}
 /*}}}*/
 /********************************************************
 * 		diagonals
