@@ -1430,7 +1430,12 @@ COMMENT ON FUNCTION footer(board) IS
 CREATE FUNCTION moveless(board)
 RETURNS board AS '$libdir/chess_index', 'board_moveless' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION moveless(board) IS 
-'Returns the board with move and halmove move clock set to zero.';
+'Returns a copy of board with move and halmove move clock set to zero.';
+
+CREATE FUNCTION clear_enpassant(board)
+RETURNS board AS '$libdir/chess_index', 'board_clr_enpassant' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION clear_enpassant(board) IS 
+'Returns a copy of the board with en passant unset.';
 
 CREATE FUNCTION pcount(board)
 RETURNS int AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;

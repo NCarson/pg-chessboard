@@ -7,7 +7,7 @@
 - test side(cpiece)
 - test invert
 - test empty_board and start_board
-- test moveless
+- test moveless, clear_enpassant
 
 # fixes
 

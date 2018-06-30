@@ -63,6 +63,7 @@ PG_FUNCTION_INFO_V1(board_cfile_type);
 PG_FUNCTION_INFO_V1(board_to_int);
 PG_FUNCTION_INFO_V1(board_hamming);
 PG_FUNCTION_INFO_V1(board_moveless);
+PG_FUNCTION_INFO_V1(board_clr_enpassant);
 /*}}}*/
 /*-------------------------------------------------------
  -      defines
@@ -1042,6 +1043,20 @@ board_moveless(PG_FUNCTION_ARGS)
     _copy_board(b, result);
     result->move = 0;
     result->last_capt = 0;
+    PG_RETURN_POINTER(result);
+}
+
+Datum
+board_clr_enpassant(PG_FUNCTION_ARGS)
+{
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    Board           *result;
+
+    INIT_BOARD(result, b->pcount);
+    _copy_board(b, result);
+    result->ep_present= 0;
+    result->ep_is_white= 0;
+    result->ep_file= 0;
     PG_RETURN_POINTER(result);
 }
 
