@@ -8,16 +8,21 @@ set -ex
 
 DB=chess_test
 CHECK=1
+GAMES=1
 USER='\"www-data\"'
 
 GAMES_DIREC='../games'
 SCIPY_DIREC='../scipy'
 
-while getopts ":n" opt; do
+while getopts ":nx" opt; do
   case $opt in
     n)
       echo "setting check to 0"
       CHECK=0
+      ;;
+    x)
+      echo "not make games"
+      GAMES=0
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -38,5 +43,10 @@ fi
 
 bash doc/makedoc.sh
 
-cd $GAMES_DIREC && make DATA_DIREC="./data/test" DB="$DB"
-cd $SCIPY_DIREC && make USER=$USER DB=$DB
+if [[ "$GAMES" -eq 1 ]]; then
+    cd $GAMES_DIREC && make DATA_DIR="./data/test" DB="$DB"
+    cd $SCIPY_DIREC && make USER=$USER DB=$DB
+else
+    psql -d $DB  -c 'drop extension if exists chess_index'
+    psql -d $DB  -c 'create extension chess_index'
+fi

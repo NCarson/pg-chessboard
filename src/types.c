@@ -63,7 +63,6 @@ PG_FUNCTION_INFO_V1(piecesquare_in);
 PG_FUNCTION_INFO_V1(piecesquare_out);
 PG_FUNCTION_INFO_V1(piecesquare_cpiece);
 PG_FUNCTION_INFO_V1(piecesquare_square);
-PG_FUNCTION_INFO_V1(piecesquares_to_board);
 
 PG_FUNCTION_INFO_V1(piece_in);
 PG_FUNCTION_INFO_V1(piece_out);
@@ -675,72 +674,6 @@ piecesquare_cpiece(PG_FUNCTION_ARGS)
 	PG_RETURN_CHAR((char)GET_PS_PIECE(ps));
 }
 
-static Board *_piecesquares_to_board(const char *footer, const Datum * input, const int size, const bool * valsNullFlags)
-{
-
-    uint16              ps;
-    cpiece_t            p;
-    char                s;
-    Board               *b; 
-    int                 k=0;
-
-    INIT_BOARD(b, size);
-    _board_footer_in(b, footer);
-
-    if (size > PIECES_MAX)
-        CH_ERROR("_piecesquares_to_board: internal error: too many pieces :%i", size);
-
-	for (int i = 0; i < size; i++) {
-		if (valsNullFlags[i]) {
-            continue;
-		} 
-        ps = DatumGetInt16(input[i]);
-        s = GET_PS_SQUARE(ps);
-        p = GET_PS_PIECE(ps);
-        if (s < 0 || s >= SQUARE_MAX) CH_ERROR("_piecesquares_to_board: internal error: invalid square: %i", s);
-        if (p < 0 || p >= CPIECE_MAX) CH_ERROR("_piecesquares_to_board: internal error: invalid piece:%i", p);
-        SET_BIT64(b->board, TO_SQUARE_IDX(s));
-        SET_PIECE(b->pieces, k, p);
-        k++;
-    }
-    b->pcount = k;
-    //debug_bitboard(b->board);
-    return b;
-}
-
-Datum 
-piecesquares_to_board(PG_FUNCTION_ARGS)
-{
-    //https://github.com/pjungwir/aggs_for_arrays/blob/master/array_to_max.c
-	ArrayType 			*vals;              // Our arguments:
-	Oid 				valsType;           // The array element type:
-	int16 				valsTypeWidth;      // The array element type widths for our input array:
-	bool 				valsTypeByValue;    // The array element type "is passed by value" flags (not really used):
-	char 				valsTypeAlignmentCode; // The array element type alignment codes (not really used):
-	Datum 				*valsContent;       // The array contents, as PostgreSQL "Datum" objects:
-	bool 				*valsNullFlags;     // List of "is null" flags for the array contents:
-	int 				valsLength;         // The size of the input array:
-
-    Board               *board;
-    char                *str = text_to_cstring(PG_GETARG_TEXT_P(1));
-
-	if (PG_ARGISNULL(0)) { ereport(ERROR, (errmsg("Null arrays not accepted"))); } 
-	vals = PG_GETARG_ARRAYTYPE_P(0);
-	if (ARR_NDIM(vals) == 0) { PG_RETURN_NULL(); }
-	if (ARR_NDIM(vals) > 1) { ereport(ERROR, (errmsg("One-dimesional arrays are required"))); }
-
-	// Determine the array element types.
-	valsType = ARR_ELEMTYPE(vals);
-	valsLength = (ARR_DIMS(vals))[0];
-	get_typlenbyvalalign(valsType, &valsTypeWidth, &valsTypeByValue, &valsTypeAlignmentCode);
-
-	// Extract the array contents (as Datum objects).
-	deconstruct_array(vals, valsType, valsTypeWidth, valsTypeByValue, valsTypeAlignmentCode, &valsContent, &valsNullFlags, &valsLength);
-
-    board = _piecesquares_to_board(str, valsContent, valsLength, valsNullFlags);
-    pfree(str);
-    PG_RETURN_POINTER(board);
-}
 /*}}}*/
 /********************************************************
  * 		pfilter

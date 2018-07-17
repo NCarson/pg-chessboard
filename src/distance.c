@@ -2,6 +2,7 @@
 
 #include "chess_index.h"
 
+
 PG_FUNCTION_INFO_V1(hamming_int64);
 PG_FUNCTION_INFO_V1(hamming_arr_byvalue);
 PG_FUNCTION_INFO_V1(jaccard_uint64);
@@ -55,28 +56,6 @@ _hamming_arr_byvalue(PG_FUNCTION_ARGS, const Datum * a, bool * nulls_a, const Da
    return result;
 }
 
-static int
-_get_array_arg(PG_FUNCTION_ARGS, const size_t idx, Datum ** valsContent, bool ** valsNullFlags)
-{
-    //https://github.com/pjungwir/aggs_for_arrays/blob/master/array_to_max.c
-	ArrayType 			*vals;            // Our arguments:
-	Oid 				valsType;           // The array element type:
-	int16 				valsTypeWidth;      // The array element type widths for our input array:
-	bool 				valsTypeByValue;    // The array element type "is passed by value" flags (not really used):
-	char 				valsTypeAlignmentCode; // The array element type alignment codes (not really used):
-	int32               valsLength;         // The size of the input array:
-
-	if (PG_ARGISNULL(idx)) { ereport(ERROR, (errmsg("Null arrays not accepted"))); } 
-	vals = PG_GETARG_ARRAYTYPE_P(idx);
-	if (ARR_NDIM(vals) == 0) { ereport(ERROR, (errmsg("array has zero dimensions"))); }
-	if (ARR_NDIM(vals) > 1) { ereport(ERROR, (errmsg("One-dimesional arrays are required"))); }
-
-	valsType = ARR_ELEMTYPE(vals);
-	valsLength = (ARR_DIMS(vals))[0];
-	get_typlenbyvalalign(valsType, &valsTypeWidth, &valsTypeByValue, &valsTypeAlignmentCode);
-	deconstruct_array(vals, valsType, valsTypeWidth, valsTypeByValue, valsTypeAlignmentCode, valsContent, valsNullFlags, &valsLength);
-    return valsLength;
-}
 
 Datum
 hamming_arr_byvalue(PG_FUNCTION_ARGS)
@@ -85,13 +64,13 @@ hamming_arr_byvalue(PG_FUNCTION_ARGS)
 	bool 				*nulls_a=0, *nulls_b=0;
     int                 len_a, len_b;
 
-    len_a = _get_array_arg(fcinfo, 0, &a, &nulls_a);
-    len_b = _get_array_arg(fcinfo, 1, &b, &nulls_b);
+    len_a = _get_array_arg(PG_FUNCTION_ARGS_CALL, 0, &a, &nulls_a);
+    len_b = _get_array_arg(PG_FUNCTION_ARGS_CALL, 1, &b, &nulls_b);
 
     if (len_a != len_b)
         CH_ERROR("array lengths must be the same");
 
-    PG_RETURN_INT64(_hamming_arr_byvalue(fcinfo, a, nulls_a, b, nulls_b, len_a));
+    PG_RETURN_INT64(_hamming_arr_byvalue(PG_FUNCTION_ARGS_CALL, a, nulls_a, b, nulls_b, len_a));
 }
 
 
@@ -162,11 +141,11 @@ jaccard_arr_byvalue(PG_FUNCTION_ARGS)
 	bool 				*nulls_a=0, *nulls_b=0;
     int                 len_a, len_b;
 
-    len_a = _get_array_arg(fcinfo, 0, &a, &nulls_a);
-    len_b = _get_array_arg(fcinfo, 1, &b, &nulls_b);
+    len_a = _get_array_arg(PG_FUNCTION_ARGS_CALL, 0, &a, &nulls_a);
+    len_b = _get_array_arg(PG_FUNCTION_ARGS_CALL, 1, &b, &nulls_b);
 
     if (len_a != len_b)
         CH_ERROR("array lengths must be the same");
 
-    PG_RETURN_FLOAT8(_jaccard_arr_byvalue(fcinfo, a, nulls_a, b, nulls_b, len_a));
+    PG_RETURN_FLOAT8(_jaccard_arr_byvalue(PG_FUNCTION_ARGS_CALL, a, nulls_a, b, nulls_b, len_a));
 }

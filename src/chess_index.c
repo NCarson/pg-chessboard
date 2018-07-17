@@ -566,3 +566,27 @@ void debug_bits(uint64 a, unsigned char bits) {
 
 
 /*}}}*/
+
+
+int
+_get_array_arg(PG_FUNCTION_ARGS, const size_t idx, Datum ** valsContent, bool ** valsNullFlags)
+{
+    //https://github.com/pjungwir/aggs_for_arrays/blob/master/array_to_max.c
+	ArrayType 			*vals;            // Our arguments:
+	Oid 				valsType;           // The array element type:
+	int16 				valsTypeWidth;      // The array element type widths for our input array:
+	bool 				valsTypeByValue;    // The array element type "is passed by value" flags (not really used):
+	char 				valsTypeAlignmentCode; // The array element type alignment codes (not really used):
+	int32               valsLength;         // The size of the input array:
+
+	if (PG_ARGISNULL(idx)) { ereport(ERROR, (errmsg("Null arrays not accepted"))); } 
+	vals = PG_GETARG_ARRAYTYPE_P(idx);
+	if (ARR_NDIM(vals) == 0) { ereport(ERROR, (errmsg("array has zero dimensions"))); }
+	if (ARR_NDIM(vals) > 1) { ereport(ERROR, (errmsg("One-dimesional arrays are required"))); }
+
+	valsType = ARR_ELEMTYPE(vals);
+	valsLength = (ARR_DIMS(vals))[0];
+	get_typlenbyvalalign(valsType, &valsTypeWidth, &valsTypeByValue, &valsTypeAlignmentCode);
+	deconstruct_array(vals, valsType, valsTypeWidth, valsTypeByValue, valsTypeAlignmentCode, valsContent, valsNullFlags, &valsLength);
+    return valsLength;
+}

@@ -1494,17 +1494,15 @@ RETURNS pindex AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION pieceindex(board, side) IS 
 'Returns the pieceindex given a side.';
 
-CREATE FUNCTION board(piecesquare[], text)
-RETURNS board AS '$libdir/chess_index', 'piecesquares_to_board' LANGUAGE C IMMUTABLE STRICT;
-COMMENT ON FUNCTION board(piecesquare[], text) IS 
-'Returns a board given the pieces and the footer part of the fen string.';
-
 CREATE FUNCTION board(piecesquare[])
-RETURNS board AS $$ 
-    SELECT board($1, 'w - -'::text)
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+RETURNS board AS '$libdir/chess_index', 'piecesquares_board' LANGUAGE C IMMUTABLE STRICT;
 COMMENT ON FUNCTION board(piecesquare[]) IS 
-'Returns a board given the pieces with initial state.';
+'Returns a board given the pieces with the footer unset';
+
+CREATE FUNCTION board(piecesquare[], text)
+RETURNS board AS '$libdir/chess_index', 'piecesquares_board' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION board(piecesquare[], text) IS 
+'Returns a board given the pieces with the footer part of the fen string copied.';
 
 CREATE CAST (piecesquare[] as board) WITH FUNCTION board(piecesquare[]);
 

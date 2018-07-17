@@ -65,6 +65,10 @@ PG_FUNCTION_INFO_V1(board_hamming);
 PG_FUNCTION_INFO_V1(board_moveless);
 PG_FUNCTION_INFO_V1(board_clr_enpassant);
 PG_FUNCTION_INFO_V1(board_invert);
+PG_FUNCTION_INFO_V1(piecesquares_board);
+
+static void _board_footer_in(Board * b, char * str);
+
 /*}}}*/
 /*-------------------------------------------------------
  -      defines
@@ -202,7 +206,6 @@ static char *_board_pieceindex(const Board * b, side_t go)/*{{{*/
     for (i=0; i<PIECE_INDEX_MAX; i++) {
         n = 0;
         target = pieces[i];
-        //CH_NOTICE("target: %c", _piece_out(target));
 
         for (k=0; k<b->pcount; k++) {
             subject = GET_PIECE(b->pieces, k);
@@ -212,7 +215,6 @@ static char *_board_pieceindex(const Board * b, side_t go)/*{{{*/
                     break;
             }
         }
-        //CH_NOTICE("n: %i", n);
         for (l=0; l<PIECE_INDEX_COUNTS[i]; l++) {
             if (l<n) {
                 result[j++] = _piece_char(_piece_type(target));
@@ -274,7 +276,6 @@ static int _board_attacks(const Board * b, int * heatmap, uint16 * piecesquares,
 
         s = FROM_BB_IDX(i);
         subject = board[i];
-        //CH_NOTICE("subject: %d", subject);
         p = _piece_type(subject);
         sign = _cpiece_side(subject)==WHITE ? 1 : -1;
         switch (p)
@@ -322,7 +323,6 @@ static int _board_attacks(const Board * b, int * heatmap, uint16 * piecesquares,
             ss = s;
             cc = count;
             d = dirs[i];
-            //CH_NOTICE("dir:%d", d);
             while(cc > 0) {
                 ss += d;
                 if (ss < 0 || ss >= SQUARE_MAX) // off board
@@ -699,6 +699,7 @@ board_in(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(result);
 }
 
+static
 void _board_footer_in(Board * b, char * str)
 {
     char        c, rank=0, ep_file=0;
@@ -1174,7 +1175,6 @@ _attacks(PG_FUNCTION_ARGS)
 
 	for (int i = 0; i<n; i++) { 
 		d[i] = UInt16GetDatum(pieces[i]);
-        //CH_NOTICE("i:%i, piecesquare: %i", i,d[i]);
 	}
 	a = construct_array(d, n, INT2OID, sizeof(uint16), true, 's');
 
@@ -1194,7 +1194,6 @@ _mobility(PG_FUNCTION_ARGS)
 
 	for (int i = 0; i<n; i++) { 
 		d[i] = UInt16GetDatum(pieces[i]);
-        //CH_NOTICE("i:%i, piecesquare: %i", i,d[i]);
 	}
 	a = construct_array(d, n, INT2OID, sizeof(uint16), true, 's');
 
@@ -1389,6 +1388,69 @@ board_cfile_type(PG_FUNCTION_ARGS)
         CH_ERROR("internal error in board_cfile_type");
 }
 
-/*}}}*/
+static Board *_piecesquares_board(char *footer, const Datum * pieces, const int size, const bool * nulls)
+{
 
+    uint16              ps;
+    cpiece_t            p;
+    char                s;
+    Board               *b; 
+    int                 count=0;
+
+    INIT_BOARD(b, size);
+    b->pcount = size;
+    if (footer)
+        _board_footer_in(b, footer);
+
+    if (size > PIECES_MAX)
+        CH_ERROR("_piecesquares_to_board: internal error: too many pieces :%i", size);
+
+    // we have to sort the pieces in bitboard order
+	for (int i=0, kk=0; i < SQUARE_MAX; i++) {
+        count = 0;
+        // then check each piece to see if its on the square
+        for (int k=0; k < size; k++) {
+            if (nulls[k]) {
+                continue;
+            } 
+            ps = DatumGetUInt16(pieces[k]);
+            s = GET_PS_SQUARE(ps);
+            if (s < 0 || s >= SQUARE_MAX) CH_ERROR("_piecesquares_to_board: internal error: invalid square: %i", s);
+            if (TO_BB_IDX(s) == i) {
+                count++;
+                if (count > 1)
+                    CH_ERROR("duplicate piece on square %i", s);
+                p = GET_PS_PIECE(ps);
+                if (p < 0 || p >= CPIECE_MAX) CH_ERROR("_piecesquares_to_board: internal error: invalid piece:%i", p);
+                SET_BIT64(b->board, TO_SQUARE_IDX(s));
+                SET_PIECE(b->pieces, kk, p);
+                kk++;
+            }
+        }
+    }
+    return b;
+}
+
+Datum 
+piecesquares_board(PG_FUNCTION_ARGS)
+{
+
+	Datum 				*pieces=0;
+	bool 				*pieces_nulls=0;
+    int                 len_pieces;
+    Board               *board;
+    char                *str=0;
+
+    if (PG_NARGS() == 2)
+        str = text_to_cstring(PG_GETARG_TEXT_P(1));
+
+    len_pieces = _get_array_arg(PG_FUNCTION_ARGS_CALL, 0, &pieces, &pieces_nulls);
+    board = _piecesquares_board(str, pieces, len_pieces, pieces_nulls);
+
+    if (str) pfree(str);
+
+    PG_RETURN_POINTER(board);
+}
+
+/*}}}*/
 

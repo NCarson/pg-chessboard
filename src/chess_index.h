@@ -25,6 +25,7 @@
 * 		defines
 ********************************************************/
 ///*{{{*/
+#define PG_FUNCTION_ARGS_CALL fcinfo
 
 #define CH_NOTICE(...) ereport(NOTICE, (errcode(ERRCODE_INTERNAL_ERROR), errmsg(__VA_ARGS__)))
 #define CH_ERROR(...) ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg(__VA_ARGS__)))
@@ -206,7 +207,6 @@ piece_t         _piece_in(char c);
 char            _piece_char(const piece_t p);
 
 Board *         _init_board(Board * b, int psize);
-void            _board_footer_in(Board * b, char * str);
 
 void            debug_bitboard(const bitboard_t a);
 void            debug_board(const board_t * b);
@@ -214,6 +214,8 @@ void            debug_bits(uint64 a, unsigned char bits);
 char            _cfile_in(char f);
 
 int             hamming_uint64(uint64 a, uint64 b);
+
+int _get_array_arg(PG_FUNCTION_ARGS, const size_t idx, Datum ** valsContent, bool ** valsNullFlags);
 
 #endif
 
