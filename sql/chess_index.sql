@@ -1210,6 +1210,11 @@ games would take 720 GB. Which are tractable numbers.
 ';
 /*}}}*/
 
+CREATE OR REPLACE FUNCTION invert(board)
+RETURNS board AS '$libdir/chess_index', 'board_invert' LANGUAGE C IMMUTABLE STRICT;
+COMMENT ON FUNCTION invert(board) IS 
+'Rotates the board 180 degrees and switches side to move.';
+
 /*---------------------------------------/
 /  pieces functions                      /
 /---------------------------------------*/
@@ -1229,6 +1234,7 @@ RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION _pieces_squares(board, square[])
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
 
 CREATE OR REPLACE FUNCTION pieces(board)
 RETURNS piecesquare[] AS $$
@@ -1311,6 +1317,7 @@ The sort order is in first
 [quadrant](https://en.wikipedia.org/wiki/Quadrant_\(plane_geometry\))
 where a1 is 0.
 ';
+
 
 CREATE FUNCTION _attacks(board)
 RETURNS int2[] AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;

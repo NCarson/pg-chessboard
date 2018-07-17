@@ -64,6 +64,7 @@ PG_FUNCTION_INFO_V1(board_to_int);
 PG_FUNCTION_INFO_V1(board_hamming);
 PG_FUNCTION_INFO_V1(board_moveless);
 PG_FUNCTION_INFO_V1(board_clr_enpassant);
+PG_FUNCTION_INFO_V1(board_invert);
 /*}}}*/
 /*-------------------------------------------------------
  -      defines
@@ -1098,6 +1099,40 @@ board_remove_pieces(PG_FUNCTION_ARGS)
     result->bq = b->bq;
     result->move = b->move;
     result->last_capt = b->last_capt;
+    PG_RETURN_POINTER(result);
+}
+
+Datum
+board_invert(PG_FUNCTION_ARGS)
+{
+
+    const Board     *b = (Board *) PG_GETARG_POINTER(0);
+    Board           *result;
+    board_t         *old = _bitboard_to_board(b);
+    board_t         *new = palloc0(SQUARE_MAX);
+
+    for (int i=0; i<SQUARE_MAX; i++) {
+        if (!old[i]) continue;
+        new[(7-(i/8))*8 + 7-(i%8)] = old[i];
+    }
+
+    INIT_BOARD(result, b->pcount);
+    result->board = _board_to_bitboard(result->pieces, new);
+    result->blacksgo = b->blacksgo ? 0 : 1;
+    result->pcount = b->pcount;
+    result->ep_present = b->ep_present;
+    result->ep_file = b->ep_file;
+    result->ep_is_white = b->ep_is_white ? 0 : 1;
+    result->wk = b->wk;
+    result->wq = b->wq;
+    result->bk = b->bk;
+    result->bq = b->bq;
+    result->move = b->move;
+    result->last_capt = b->last_capt;
+
+    pfree(old);
+    pfree(new);
+
     PG_RETURN_POINTER(result);
 }
 
