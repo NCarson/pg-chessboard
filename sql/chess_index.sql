@@ -1212,8 +1212,32 @@ games would take 720 GB. Which are tractable numbers.
 
 CREATE OR REPLACE FUNCTION invert(board)
 RETURNS board AS '$libdir/chess_index', 'board_invert' LANGUAGE C IMMUTABLE STRICT;
-COMMENT ON FUNCTION invert(board) IS 
-'Rotates the board 180 degrees and switches side to move.';
+COMMENT ON FUNCTION invert(board) IS '
+Reverses fen string, colors, and side to move. [sql]
+
+A white piece on a1 will become a black piece on h8.
+With this method we can treat all positions with
+white now meaning: *the side with the move* 
+\(Classifying Chess Positions, De Sa, 2012\).
+
+Black''s go after 1. e4:
+```sql
+SELECT pretty(invert(''rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1''));
+```
+```
+           pretty            
+        -----------------------------
+         RNBQKBNR                   +
+         PPPPPPPP                   +
+         ........                   +
+         ........                   +
+         ....p...                   +
+         ........                   +
+         pppp.ppp                   +
+         rnbqkbnr  w  KQkq  e3  0  1+
+```
+
+';
 
 /*---------------------------------------/
 /  pieces functions                      /
@@ -1392,37 +1416,6 @@ select pretty(empty_board());
 ```
 ';
 
-CREATE OR REPLACE FUNCTION invert(board)
-RETURNS board AS $$
-select REPLACE(TRANSLATE($1::text, 'pnbrqkPNBRQKw', 'PNBRQKpnbrqkb'), ' B ', ' w ')::board
-$$ LANGUAGE SQL IMMUTABLE STRICT;
-COMMENT ON FUNCTION invert(board) IS '
-Reverses fen string, colors, and side to move. [sql]
-
-A white piece on a1 will become a black piece on h8.
-With this method we can treat all positions with
-white now meaning: *the side with the move* 
-\(Classifying Chess Positions, De Sa, 2012\).
-
-Black''s go after 1. e4:
-```sql
-SELECT pretty(invert(''rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1''));
-```
-```
-           pretty            
-        -----------------------------
-         RNBQKBNR                   +
-         PPPPPPPP                   +
-         ........                   +
-         ........                   +
-         ....p...                   +
-         ........                   +
-         pppp.ppp                   +
-         rnbqkbnr  w  KQkq  e3  0  1+
-```
-
-`TODO: handle en passant.`
-';
 /*}}}*/
 
 /*---------------------------------------/

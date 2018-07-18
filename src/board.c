@@ -98,7 +98,7 @@ static char _board_cpiece_min_rank(const board_t * , const char, const cpiece_t 
 /*{{{*/
 
 static bitboard_t 
-_board_to_bitboard(pieces_t * pieces, const board_t * board)
+_set_pieces(const board_t * board, pieces_t * pieces)
 {
 
     bitboard_t          bboard=0;
@@ -109,7 +109,7 @@ _board_to_bitboard(pieces_t * pieces, const board_t * board)
             SET_PIECE(pieces, k, board[i]);
             k++;
         }
-        if (k> PIECES_MAX)
+        if (k > PIECES_MAX)
             CH_ERROR("_board_to_bitboard: internal error: too many pieces :%i", k);
     }
     return bboard;
@@ -1088,7 +1088,7 @@ board_remove_pieces(PG_FUNCTION_ARGS)
     pfree(board);
 
     INIT_BOARD(result, b->pcount - n);
-    result->board = _board_to_bitboard(result->pieces, board);
+    result->board = _set_pieces(board, result->pieces);
     result->blacksgo = b->blacksgo;
     result->pcount = b->pcount - n;
     result->ep_present = b->ep_present;
@@ -1111,29 +1111,28 @@ board_invert(PG_FUNCTION_ARGS)
     Board           *result;
     board_t         *old = _bitboard_to_board(b);
     board_t         *new = palloc0(SQUARE_MAX);
+    cpiece_t        p;
+
+    INIT_BOARD(result, b->pcount);
+    _copy_board(b, result);
 
     for (int i=0; i<SQUARE_MAX; i++) {
         if (!old[i]) continue;
-        new[(7-(i/8))*8 + 7-(i%8)] = old[i];
+        if (_cpiece_side(old[i])==WHITE)
+            p = old[i] + 6;
+        else
+            p = old[i] - 6;
+        // board is in square idx so we dont
+        // need to anything to invert
+        // as _set_pieces will do the work for us
+        new[i] = p;
     }
 
-    INIT_BOARD(result, b->pcount);
-    result->board = _board_to_bitboard(result->pieces, new);
+    result->board = _set_pieces(new, result->pieces);
     result->blacksgo = b->blacksgo ? 0 : 1;
-    result->pcount = b->pcount;
-    result->ep_present = b->ep_present;
-    result->ep_file = b->ep_file;
     result->ep_is_white = b->ep_is_white ? 0 : 1;
-    result->wk = b->wk;
-    result->wq = b->wq;
-    result->bk = b->bk;
-    result->bq = b->bq;
-    result->move = b->move;
-    result->last_capt = b->last_capt;
-
     pfree(old);
     pfree(new);
-
     PG_RETURN_POINTER(result);
 }
 
