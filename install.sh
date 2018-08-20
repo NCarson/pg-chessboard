@@ -9,7 +9,7 @@ set -ex
 DB=chess_test
 CHECK=1
 GAMES=1
-USER='\"www-data\"'
+USER='web_app'
 
 GAMES_DIREC='../games'
 SCIPY_DIREC='../scipy'
