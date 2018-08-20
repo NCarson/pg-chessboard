@@ -146,6 +146,16 @@ const int               PIECE_INDEX_COUNTS[5];
 #define PIECE_INDEX_SUM 15
 #define PIECE_INDEX_MAX 5
 
+typedef struct {
+    unsigned int        from : 6;
+    unsigned int        to : 6;
+    unsigned int        is_check : 1;
+    unsigned int        is_mate: 1;
+    unsigned int        is_capture: 1;
+    unsigned int        piece: 3; 
+    unsigned int        promotion: 3; 
+} Move;
+
 
 /*
  * base-size -> 16:   4 bytes length (required by pg) 

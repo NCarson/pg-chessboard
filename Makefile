@@ -6,7 +6,7 @@ DATA 		 	= sql/chess_index--0.0.1.sql
 
 REGRESS_OPTS  	= --inputdir=test         \
                   --load-extension=chess_index
-REGRESS       	= setup piece cpiece square board board_func piecesquare pfilter
+REGRESS       	= setup piece cpiece square board board_func piecesquare pfilter move
 
 #DATA        	= $(filter-out $(wildcard sql/*--*.sql),$(wildcard sql/*.sql))
 #MODULES      	= $(patsubst %.c,%,$(wildcard src/*.c))

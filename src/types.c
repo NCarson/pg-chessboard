@@ -43,6 +43,8 @@ square numbers
  * 		defines
  ********************************************************/
 
+#define MAKE_SQUARE(file, rank, str) {str[0]=file; str[1]=rank;}
+
 // function info
 ///*{{{*/
 
@@ -93,11 +95,122 @@ PG_FUNCTION_INFO_V1(square_to_adiagonal);
 PG_FUNCTION_INFO_V1(pfilter_in);
 PG_FUNCTION_INFO_V1(pfilter_out);
 
+PG_FUNCTION_INFO_V1(move_in);
+PG_FUNCTION_INFO_V1(move_out);
+PG_FUNCTION_INFO_V1(move_from);
+PG_FUNCTION_INFO_V1(move_san);
+PG_FUNCTION_INFO_V1(move_to);
+PG_FUNCTION_INFO_V1(move_check);
+PG_FUNCTION_INFO_V1(move_mate);
+PG_FUNCTION_INFO_V1(move_capture);
+PG_FUNCTION_INFO_V1(move_piece);
+PG_FUNCTION_INFO_V1(move_promotion);
+
 /*}}}*/
 /********************************************************
 * 		piece
 ********************************************************/
 /*{{{*/
+
+
+piece_t _piece_type(const cpiece_t p) 
+{
+    piece_t          result;
+
+    switch (p) {
+        case WHITE_PAWN:    result=PAWN; break;
+        case WHITE_KNIGHT:  result=KNIGHT; break;
+        case WHITE_BISHOP:  result=BISHOP; break;
+        case WHITE_ROOK:    result=ROOK; break;
+        case WHITE_QUEEN:   result=QUEEN; break;
+        case WHITE_KING:    result=KING; break;
+        case BLACK_PAWN:    result=PAWN; break;
+        case BLACK_KNIGHT:  result=KNIGHT; break;
+        case BLACK_BISHOP:  result=BISHOP; break;
+        case BLACK_ROOK:    result=ROOK; break;
+        case BLACK_QUEEN:   result=QUEEN; break;
+        case BLACK_KING:    result=KING; break;
+        default:
+            CH_ERROR("bad cpiece_t: %i", p); break;
+    }
+    return result;
+}
+
+int _piece_value(const piece_t p) 
+{
+    char                result;
+    switch (p) {
+        case PAWN:    result= 1; break;
+        case KNIGHT:  result= 3; break;
+        case BISHOP:  result= 3; break;
+        case ROOK:    result= 5; break;
+        case QUEEN:   result= 9; break;
+        case KING:    result= 0; break;
+        default:
+            CH_ERROR("bad cpiece_t: %i", p); break;
+    }
+    return result;
+}
+
+piece_t    _piece_in(char c)
+{
+    piece_t             result;
+    char                piece[] = ".";
+
+    switch(c) {
+        case 'P': result=PAWN; break;
+        case 'R': result=ROOK; break;
+        case 'N': result=KNIGHT; break;
+        case 'B': result=BISHOP; break;
+        case 'Q': result=QUEEN; break;
+        case 'K': result=KING; break;
+        case 'p': result=PAWN; break;
+        case 'r': result=ROOK; break;
+        case 'n': result=KNIGHT; break;
+        case 'b': result=BISHOP; break;
+        case 'q': result=QUEEN; break;
+        case 'k': result=KING; break;
+		default:
+            piece[0] = c;
+			BAD_TYPE_IN("piece", piece);
+			break;
+    }
+    return result;
+}
+
+static 
+piece_t    _soft_piece_in(char c)
+{
+    piece_t             result;
+
+    switch(c) {
+        case 'P': result=PAWN; break;
+        case 'R': result=ROOK; break;
+        case 'N': result=KNIGHT; break;
+        case 'B': result=BISHOP; break;
+        case 'Q': result=QUEEN; break;
+        case 'K': result=KING; break;
+		default: result=NO_PIECE; break;
+    }
+    return result;
+}
+
+char _piece_char(const piece_t p) 
+{
+    char        result;
+    switch (p) {
+        case NO_PIECE:  result='.'; break;
+        case PAWN:      result='P'; break;
+        case KNIGHT:    result='N'; break;
+        case BISHOP:    result='B'; break;
+        case ROOK:      result='R'; break;
+        case QUEEN:     result='Q'; break;
+        case KING:      result='K'; break;
+        default:
+            CH_ERROR("bad piece_t: %i", p); break;
+    }
+    return result;
+}
 
 Datum
 piece_in(PG_FUNCTION_ARGS)
@@ -131,11 +244,137 @@ piece_value(PG_FUNCTION_ARGS)
 }
 
 /*}}}*/
-
 /********************************************************
 * 		cpiece
 ********************************************************/
 /*{{{*/
+
+cpiece_t _cpiece_type(const piece_t p, bool iswhite) 
+{
+    piece_t          result;
+
+    if (iswhite) {
+        switch (p) {
+            case PAWN:    result=WHITE_PAWN; break;
+            case KNIGHT:  result=WHITE_KNIGHT; break;
+            case BISHOP:  result=WHITE_BISHOP; break;
+            case ROOK:    result=WHITE_ROOK; break;
+            case QUEEN:   result=WHITE_QUEEN; break;
+            case KING:    result=WHITE_KING; break;
+            default:
+                CH_ERROR("bad piece_t: %i", p); break;
+        }
+    } else {
+        switch (p) {
+            case PAWN:    result=BLACK_PAWN; break;
+            case KNIGHT:  result=BLACK_KNIGHT; break;
+            case BISHOP:  result=BLACK_BISHOP; break;
+            case ROOK:    result=BLACK_ROOK; break;
+            case QUEEN:   result=BLACK_QUEEN; break;
+            case KING:    result=BLACK_KING; break;
+            default:
+                CH_ERROR("bad piece_t: %i", p); break;
+        }
+    }
+    return result;
+}
+
+char _cpiece_char(const cpiece_t p) 
+{
+    char                result;
+    switch (p) {
+        case WHITE_PAWN:    result='P'; break;
+        case WHITE_KNIGHT:  result='N'; break;
+        case WHITE_BISHOP:  result='B'; break;
+        case WHITE_ROOK:    result='R'; break;
+        case WHITE_QUEEN:   result='Q'; break;
+        case WHITE_KING:    result='K'; break;
+        case BLACK_PAWN:    result='p'; break;
+        case BLACK_KNIGHT:  result='n'; break;
+        case BLACK_BISHOP:  result='b'; break;
+        case BLACK_ROOK:    result='r'; break;
+        case BLACK_QUEEN:   result='q'; break;
+        case BLACK_KING:    result='k'; break;
+        default:
+            CH_ERROR("bad cpiece_t: %i", p); break;
+    }
+    return result;
+}
+int _cpiece_value(const cpiece_t p) 
+{
+    char                result;
+    switch (p) {
+        case WHITE_PAWN:    result= 1; break;
+        case WHITE_KNIGHT:  result= 3; break;
+        case WHITE_BISHOP:  result= 3; break;
+        case WHITE_ROOK:    result= 5; break;
+        case WHITE_QUEEN:   result= 9; break;
+        case WHITE_KING:    result= 0; break;
+        case BLACK_PAWN:    result=-1; break;
+        case BLACK_KNIGHT:  result=-3; break;
+        case BLACK_BISHOP:  result=-3; break;
+        case BLACK_ROOK:    result=-5; break;
+        case BLACK_QUEEN:   result=-9; break;
+        case BLACK_KING:    result= 0; break;
+        default:
+            CH_ERROR("bad cpiece_t: %i", p); break;
+    }
+    return result;
+}
+
+cpiece_t _cpiece_in(char c)
+{
+    cpiece_t            result;
+    char                piece[] = ".";
+
+    switch(c) {
+        case 'P': result=WHITE_PAWN; break;
+        case 'R': result=WHITE_ROOK; break;
+        case 'N': result=WHITE_KNIGHT; break;
+        case 'B': result=WHITE_BISHOP; break;
+        case 'Q': result=WHITE_QUEEN; break;
+        case 'K': result=WHITE_KING; break;
+        case 'p': result=BLACK_PAWN; break;
+        case 'r': result=BLACK_ROOK; break;
+        case 'n': result=BLACK_KNIGHT; break;
+        case 'b': result=BLACK_BISHOP; break;
+        case 'q': result=BLACK_QUEEN; break;
+        case 'k': result=BLACK_KING; break;
+		default:
+            piece[0] = c;
+			BAD_TYPE_IN("cpiece", piece);
+			break;
+    }
+    return result;
+}
+
+
+side_t _cpiece_side(const cpiece_t p) 
+{
+    side_t          result;
+
+    switch (p) {
+        case WHITE_PAWN:
+        case WHITE_KNIGHT:
+        case WHITE_BISHOP:
+        case WHITE_ROOK:
+        case WHITE_QUEEN:
+        case WHITE_KING:
+            result=WHITE;
+            break;
+        case BLACK_PAWN:
+        case BLACK_KNIGHT:
+        case BLACK_BISHOP:
+        case BLACK_ROOK:
+        case BLACK_QUEEN:
+        case BLACK_KING:
+            result=BLACK;
+            break;
+        default:
+            CH_ERROR("bad cpiece_t: %i", p); break;
+    }
+    return result;
+}
 
 Datum
 cpiece_in(PG_FUNCTION_ARGS)
@@ -281,6 +520,49 @@ rank_out(PG_FUNCTION_ARGS)
  ********************************************************/
 /*{{{*/
 
+char _square_in(char file, char rank)
+{
+    char			c=0;
+    char            square[] = "..";
+
+    if (file < 'a' || file > 'h') {
+        MAKE_SQUARE(file, rank, square)
+        BAD_TYPE_IN("square", square);
+    }
+    if (rank < '1' ||  rank > '8') {
+        MAKE_SQUARE(file, rank, square)
+        BAD_TYPE_IN("square", square);
+    }
+
+    c = (file - 'a') + ( 8 * (rank - '1'));
+
+    CH_DEBUG5("_square_in: file:%c rank:%c char:%i", file, rank, c);
+#ifdef EXTRA_DEBUG
+    CH_DEBUG5("_square_in char of file rank: %c%c:", CHAR_CFILE(c), CHAR_RANK(c));
+    CH_DEBUG5("c file:%i c rank:%i", TO_FILE(c), TO_RANK(c));
+    CH_DEBUG5("file - 'a':%i rank-'1':%i", file -'a', rank-'1');
+#endif
+
+    if (c < 0 || c > 63) {
+        MAKE_SQUARE(file, rank, square);
+        CH_ERROR("bad conversion for square %s" ,square);
+    }
+    return c;
+}
+
+
+Datum
+square_in(PG_FUNCTION_ARGS)
+{
+    char 			*str = PG_GETARG_CSTRING(0);
+
+    if (strlen(str) != 2)
+        BAD_TYPE_IN("square", str); 
+
+    PG_RETURN_CHAR(_square_in(str[0], str[1]));
+}
+
+
 
 static char *_square_out(char c, char *str)
 {
@@ -315,19 +597,6 @@ static char *_square_out(char c, char *str)
     }
     return str;
 }
-
-
-Datum
-square_in(PG_FUNCTION_ARGS)
-{
-    char 			*str = PG_GETARG_CSTRING(0);
-
-    if (strlen(str) != 2)
-        BAD_TYPE_IN("square", str); 
-
-    PG_RETURN_CHAR(_square_in(str[0], str[1]));
-}
-
 
 Datum
 square_out(PG_FUNCTION_ARGS)
@@ -678,7 +947,8 @@ piecesquare_cpiece(PG_FUNCTION_ARGS)
 /********************************************************
  * 		pfilter
  ********************************************************/
-Datum/*{{{*/
+/*{{{*/
+Datum
 pfilter_in(PG_FUNCTION_ARGS)
 {
 	char 		    	*str = PG_GETARG_CSTRING(0);
@@ -723,4 +993,215 @@ pfilter_out(PG_FUNCTION_ARGS)
 
 	PG_RETURN_CSTRING(result);
 }/*}}}*/
+/********************************************************
+ * 		move
+ ********************************************************/
+
+Datum
+move_in(PG_FUNCTION_ARGS)
+{
+	const char 		    *str = PG_GETARG_CSTRING(0);
+    char                *cpy = palloc(7);
+    const char          *p = cpy;
+    Move                *result = palloc0(sizeof(Move));
+    size_t              i = strlen(str) - 1;
+    piece_t             piece;
+
+
+    /* Qd8-h4+ 15. Kh2-g1 Bb7xg2 16. Bc4xe6+ Kg8-h8 
+     * promotion: e7xd8Q+
+     * */
+
+
+	if (strlen(str) > 8 || strlen(str) < 5)
+        BAD_TYPE_IN("move", str); 
+    cpy = strcpy(cpy, str);
+
+    if (cpy[i] ==  '+') {
+        result->is_check = 1;
+        cpy[i--] = '\0';
+    }
+    if (cpy[i] ==  '#') {
+        result->is_mate = 1;
+        cpy[i--] = '\0';
+    }
+    if (_soft_piece_in(cpy[i])) {
+        result->promotion = _soft_piece_in(cpy[i]);
+        cpy[i--] = '\0';
+    }
+
+    if (result->is_check + result->is_mate > 1)
+        BAD_TYPE_IN("move", str); 
+
+    result->piece = PAWN;
+    piece = _soft_piece_in(p[0]);
+    switch(piece) {
+        case PAWN:
+        case ROOK:
+        case KNIGHT:
+        case BISHOP:
+        case QUEEN:
+        case KING:
+                  result->piece = piece;
+                  p++;
+                  break;
+		default:
+                  break;
+    }
+
+    if (p[2] == 'x') {
+        result->is_capture = 1;
+    } else if (p[2] == '-') {
+        // no op
+    } else {
+        BAD_TYPE_IN("move", str); 
+    }
+
+    if (result->promotion && result->piece != PAWN)
+        BAD_TYPE_IN("move", str); 
+
+    if (result->promotion == PAWN)
+        BAD_TYPE_IN("move", str); 
+
+    result->from = _square_in(p[0], p[1]);
+    result->to = _square_in(p[3], p[4]);
+
+    if (strlen(p+5)) {
+        CH_NOTICE("|%s|", p+5); 
+        BAD_TYPE_IN("move", str); 
+    }
+
+	PG_RETURN_POINTER(result);
+}
+
+Datum
+move_out(PG_FUNCTION_ARGS)
+{
+	const Move      *move = (Move *)PG_GETARG_POINTER(0);
+	char			*result = (char *) palloc0(8);
+    char            *p = result;
+
+    /* Qd8-h4+ 15. Kh2-g1 Bb7xg2 16. Bc4xe6+ Kg8-h8 
+     * promotion: e7xd8Q+
+     * */
+
+    if (move->piece != PAWN) {
+        result[0] = _piece_char(move->piece);
+        p++;
+    }
+    _square_out(move->from, p);
+    p = p + 2;
+    (p++)[0] = move->is_capture ? 'x' : '-';
+
+    _square_out(move->to, p);
+    p = p + 2;
+
+    if (move->promotion)
+        (p++)[0] = _piece_char(move->promotion);
+    if (move->is_check)
+        (p++)[0] = '+';
+    if (move->is_mate)
+        (p++)[0] = '#';
+
+    (p++)[0] = '\0';
+
+	PG_RETURN_CSTRING(result);
+}
+
+Datum
+move_san(PG_FUNCTION_ARGS)
+{
+	const Move      *move = (Move *)PG_GETARG_POINTER(0);
+	char			*result = (char *) palloc0(8);
+    char            *p = result;
+
+    //exf8=Q#
+
+    if (move->piece != PAWN) {
+        result[0] = _piece_char(move->piece);
+        p++;
+    }
+    else if (move->piece == PAWN && move->is_capture) {
+        result[0] = CHAR_CFILE(move->from);
+        p++;
+    }
+
+    if (move->is_capture) {
+        p[0] = 'x';
+        p++;
+    }
+
+    _square_out(move->to, p);
+    p = p + 2;
+
+    if (move->promotion) {
+        (p++)[0] = '=';
+        (p++)[0] = _piece_char(move->promotion);
+    }
+
+    if (move->is_check)
+        (p++)[0] = '+';
+    if (move->is_mate)
+        (p++)[0] = '#';
+
+    (p++)[0] = '\0';
+
+    //XXX Im not sure if this leaks
+    PG_RETURN_TEXT_P(cstring_to_text(result));
+}
+
+Datum
+move_from(PG_FUNCTION_ARGS)
+{
+	const Move      *move = (Move *)PG_GETARG_POINTER(0);
+	PG_RETURN_CHAR(move->from);
+}
+
+Datum
+move_to(PG_FUNCTION_ARGS)
+{
+	const Move      *move = (Move *)PG_GETARG_POINTER(0);
+	PG_RETURN_CHAR(move->to);
+}
+
+Datum
+move_check(PG_FUNCTION_ARGS)
+{
+	const Move      *move = (Move *)PG_GETARG_POINTER(0);
+	PG_RETURN_BOOL(move->is_check==1);
+}
+
+Datum
+move_mate(PG_FUNCTION_ARGS)
+{
+	const Move      *move = (Move *)PG_GETARG_POINTER(0);
+	PG_RETURN_BOOL(move->is_mate==1);
+}
+
+Datum
+move_capture(PG_FUNCTION_ARGS)
+{
+	const Move      *move = (Move *)PG_GETARG_POINTER(0);
+	PG_RETURN_BOOL(move->is_capture==1);
+}
+
+Datum
+move_piece(PG_FUNCTION_ARGS)
+{
+	const Move      *move = (Move *)PG_GETARG_POINTER(0);
+	PG_RETURN_CHAR(move->piece);
+}
+
+
+Datum
+move_promotion(PG_FUNCTION_ARGS)
+{
+	const Move      *move = (Move *)PG_GETARG_POINTER(0);
+    if (move->promotion)
+        PG_RETURN_CHAR(move->promotion);
+    else
+        PG_RETURN_NULL();
+}
+
+
 

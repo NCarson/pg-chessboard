@@ -857,6 +857,41 @@ FUNCTION        1       hash_square(cpiece);
 
 /*}}}*/
 /****************************************************************************
+-- move
+****************************************************************************/
+/*{{{*/
+CREATE FUNCTION move_in(cstring)
+RETURNS move AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION move_out(move)
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE MOVE(
+    INPUT          = move_in,
+    OUTPUT         = move_out,
+    INTERNALLENGTH = 4,    
+	ALIGNMENT      = int4, 
+	STORAGE        = PLAIN
+);
+
+CREATE FUNCTION from_(MOVE)
+RETURNS square AS '$libdir/chess_index', 'move_from' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION to_(MOVE)
+RETURNS square AS '$libdir/chess_index', 'move_to' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION ischeck(MOVE)
+RETURNS bool AS '$libdir/chess_index', 'move_check' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION ismate(MOVE)
+RETURNS bool AS '$libdir/chess_index', 'move_mate' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION iscapture(MOVE)
+RETURNS bool AS '$libdir/chess_index', 'move_capture' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION piece(MOVE)
+RETURNS piece AS '$libdir/chess_index', 'move_piece' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION promotion(MOVE)
+RETURNS piece AS '$libdir/chess_index', 'move_promotion' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION san(MOVE)
+RETURNS text AS '$libdir/chess_index', 'move_san' LANGUAGE C IMMUTABLE STRICT;
+/*}}}*/
+/****************************************************************************
 -- pfilter
 ****************************************************************************/
 /*{{{*/
@@ -1775,6 +1810,11 @@ SELECT pretty(''p''::piece);
  ♙
 (1 row)
 ';
+
+CREATE OR REPLACE FUNCTION pretty_san(san TEXT)
+RETURNS text AS $$
+    SELECT translate($1::text, 'KQRBNP', U&'\2654\2655\2656\2657\2658\2659')
+$$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION pretty(cpiece)
 RETURNS text AS $$
