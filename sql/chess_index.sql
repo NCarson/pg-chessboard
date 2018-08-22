@@ -33,6 +33,25 @@ RETURNS float8 AS '$libdir/chess_index', 'jaccard_arr_byvalue' LANGUAGE C IMMUTA
 
 /*}}}*/
 /****************************************************************************
+-- timecontrol
+ ****************************************************************************/
+/*{{{*/
+CREATE FUNCTION timecontrol_in(cstring)
+RETURNS timecontrol AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION timecontrol_out(timecontrol)
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE timecontrol(
+    INPUT          = timecontrol_in,
+    OUTPUT         = timecontrol_out,
+
+    INTERNALLENGTH = 2,     
+    ALIGNMENT      = int2,
+    STORAGE        = PLAIN
+);
+/*}}}*/
+/****************************************************************************
 -- side : white or black
  ****************************************************************************/
 /*{{{*/
@@ -891,6 +910,23 @@ RETURNS piece AS '$libdir/chess_index', 'move_promotion' LANGUAGE C IMMUTABLE ST
 CREATE FUNCTION san(MOVE)
 RETURNS text AS '$libdir/chess_index', 'move_san' LANGUAGE C IMMUTABLE STRICT;
 /*}}}*/
+/****************************************************************************
+-- ucimove
+****************************************************************************/
+CREATE FUNCTION ucimove_in(cstring)
+RETURNS ucimove AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION ucimove_out(ucimove)
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE ucimove(
+    INPUT          = ucimove_in,
+    OUTPUT         = ucimove_out,
+    INTERNALLENGTH = 2,    
+	ALIGNMENT      = int2, 
+	STORAGE        = PLAIN
+);
+
 /****************************************************************************
 -- pfilter
 ****************************************************************************/

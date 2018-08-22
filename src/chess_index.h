@@ -147,14 +147,29 @@ const int               PIECE_INDEX_COUNTS[5];
 #define PIECE_INDEX_MAX 5
 
 typedef struct {
-    unsigned int        from : 6;
-    unsigned int        to : 6;
-    unsigned int        is_check : 1;
-    unsigned int        is_mate: 1;
-    unsigned int        is_capture: 1;
-    unsigned int        piece: 3; 
-    unsigned int        promotion: 3; 
+    unsigned char       from : 6;
+    unsigned char       to : 6;
+    unsigned char       is_check : 1;
+    unsigned char       is_mate: 1;
+    unsigned char       is_capture: 1;
+    unsigned char       piece: 3; 
+    unsigned char       promotion: 3; 
 } Move;
+
+typedef struct {
+    unsigned short      from : 6;
+    unsigned short      to : 6;
+    unsigned short      promotion: 3; 
+} UciMove;
+
+
+typedef enum            {CH_TIME_NONE, CH_TIME_MOVES, CH_TIME_SECS, CH_TIME_SANDCLOCK} t_chess_time;
+
+typedef struct {
+    unsigned short      primary;
+    unsigned char       secondary;
+    unsigned char       kind;
+} TimeControl;
 
 
 /*

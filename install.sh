@@ -6,7 +6,7 @@ set -ex
 #    exit 1
 #fi
 
-DB=chess_test
+DB=chess-test
 CHECK=1
 GAMES=1
 USER='web_app'

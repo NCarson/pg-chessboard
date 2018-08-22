@@ -106,6 +106,12 @@ PG_FUNCTION_INFO_V1(move_capture);
 PG_FUNCTION_INFO_V1(move_piece);
 PG_FUNCTION_INFO_V1(move_promotion);
 
+PG_FUNCTION_INFO_V1(ucimove_in);
+PG_FUNCTION_INFO_V1(ucimove_out);
+
+PG_FUNCTION_INFO_V1(timecontrol_in);
+PG_FUNCTION_INFO_V1(timecontrol_out);
+
 /*}}}*/
 /********************************************************
 * 		piece
@@ -190,6 +196,14 @@ piece_t    _soft_piece_in(char c)
         case 'B': result=BISHOP; break;
         case 'Q': result=QUEEN; break;
         case 'K': result=KING; break;
+
+        case 'p': result=PAWN; break;
+        case 'r': result=ROOK; break;
+        case 'n': result=KNIGHT; break;
+        case 'b': result=BISHOP; break;
+        case 'q': result=QUEEN; break;
+        case 'k': result=KING; break;
+
 		default: result=NO_PIECE; break;
     }
     return result;
@@ -996,7 +1010,7 @@ pfilter_out(PG_FUNCTION_ARGS)
 /********************************************************
  * 		move
  ********************************************************/
-
+/*{{{*/
 Datum
 move_in(PG_FUNCTION_ARGS)
 {
@@ -1067,10 +1081,10 @@ move_in(PG_FUNCTION_ARGS)
     result->to = _square_in(p[3], p[4]);
 
     if (strlen(p+5)) {
-        CH_NOTICE("|%s|", p+5); 
         BAD_TYPE_IN("move", str); 
     }
 
+    pfree(cpy);
 	PG_RETURN_POINTER(result);
 }
 
@@ -1203,5 +1217,265 @@ move_promotion(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
 }
 
+/*}}}*/
+/********************************************************
+ * 		ucimove
+ ********************************************************/
+
+Datum
+ucimove_in(PG_FUNCTION_ARGS)
+{
+	const char 		    *str = PG_GETARG_CSTRING(0);
+    char                *cpy = palloc(6);
+    const char          *p = cpy;
+    UciMove             *result = (UciMove *) palloc0(sizeof(UciMove));
+    size_t              i = strlen(str) - 1;
 
 
+	if (strlen(str) < 4 || strlen(str) > 5)
+        BAD_TYPE_IN("ucimove", str); 
+
+    cpy = strcpy(cpy, str);
+    if (_soft_piece_in(cpy[i])) {
+        result->promotion = _soft_piece_in(cpy[i]);
+        cpy[i--] = '\0';
+    }
+
+    if (result->promotion == PAWN) {
+        BAD_TYPE_IN("ucimove", str); 
+    }
+    if (strlen(p+4)) {
+        BAD_TYPE_IN("ucimove", str); 
+    }
+
+    result->from = _square_in(p[0], p[1]);
+    result->to = _square_in(p[2], p[3]);
+
+    pfree(cpy);
+	PG_RETURN_POINTER(result);
+}
+
+Datum
+ucimove_out(PG_FUNCTION_ARGS)
+{
+
+	const UciMove   *move = (UciMove *)PG_GETARG_POINTER(0);
+	char			*result = (char *) palloc0(6);
+    char            *p = result;
+
+    /* Qd8-h4+ 15. Kh2-g1 Bb7xg2 16. Bc4xe6+ Kg8-h8 
+     * promotion: e7xd8Q+
+     * */
+
+    _square_out(move->from, p);
+    p = p + 2;
+    _square_out(move->to, p);
+    p = p + 2;
+
+    if (move->promotion)
+        (p++)[0] = _piece_char(move->promotion);
+
+    (p++)[0] = '\0';
+
+	PG_RETURN_CSTRING(result);
+}
+
+/********************************************************
+ * 		time_control
+ ********************************************************/
+/*{{{*/
+typedef enum {
+    STR2INT_SUCCESS,
+    STR2INT_OVERFLOW,
+    STR2INT_UNDERFLOW,
+    STR2INT_INCONVERTIBLE
+} str2int_errno;
+
+/* Convert string s to int out.
+ *
+ * @param[out] out The converted int. Cannot be NULL.
+ *
+ * @param[in] s Input string to be converted.
+ *
+ *     The format is the same as strtol,
+ *     except that the following are inconvertible:
+ *
+ *     - empty string
+ *     - leading whitespace
+ *     - any trailing characters that are not part of the number
+ *
+ *     Cannot be NULL.
+ *
+ * @param[in] base Base to interpret string in. Same range as strtol (2 to 36).
+ *
+ * @return Indicates if the operation succeeded, or why it failed.
+ */
+
+static str2int_errno str2int(int *out, char *s, int base) {
+    char *end;
+    long l;
+
+    if (s[0] == '\0' || isspace(s[0]))
+        return STR2INT_INCONVERTIBLE;
+    errno = 0;
+
+    l = strtol(s, &end, base);
+    /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
+    if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
+        return STR2INT_OVERFLOW;
+    if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
+        return STR2INT_UNDERFLOW;
+    if (*end != '\0')
+        return STR2INT_INCONVERTIBLE;
+    *out = l;
+    return STR2INT_SUCCESS;
+}
+
+/* from the spec:
+9.6.1 Tag: TimeControl
+This uses a list of one or more time control fields. Each field contains a descriptor for each time control period; if more than one descriptor is present then they are separated by the colon character (":"). The descriptors appear in the order in which they are used in the game. The last field appearing is considered to be implicitly repeated for further control periods as needed.
+There are six kinds of TimeControl fields.
+
+The first kind is a single question mark ("?") which means that the time control
+mode is unknown. When used, it is usually the only descriptor present.
+
+The second kind is a single hyphen ("-") which means that there was no time
+control mode in use. When used, it is usually the only descriptor present.
+
+The third Time control field kind is formed as two positive integers separated
+by a solidus ("/") character. The first integer is the number of moves in the
+period and the second is the number of seconds in the period. Thus, a time
+control period of 40 moves in 2 1/2 hours would be represented as "40/9000".
+
+The fourth TimeControl field kind is used for a "sudden death" control period.
+It should only be used for the last descriptor in a TimeControl tag value. It is
+sometimes the only descriptor present. The format consists of a single integer
+that gives the number of seconds in the period. Thus, a blitz game would be
+represented with a TimeControl tag value of "300".
+
+The fifth TimeControl field kind is used for an "incremental" control period. It
+should only be used for the last descriptor in a TimeControl tag value and is
+usually the only descriptor in the value. The format consists of two positive
+integers separated by a plus sign ("+") character. The first integer gives the
+minimum number of seconds allocated for the period and the second integer gives
+the number of extra seconds added after each move is made. So, an incremental
+time control of 90 minutes plus one extra minute per move would be given by
+"4500+60" in the TimeControl tag value.
+
+The sixth TimeControl field kind is used for a "sandclock" or "hourglass"
+control period. It should only be used for the last descriptor in a TimeControl
+tag value and is usually the only descriptor in the value. The format consists
+of an asterisk ("*") immediately followed by a positive integer. The integer
+gives the total number of seconds in the sandclock period. The time control is
+implemented as if a sandclock were set at the start of the period with an equal
+amount of sand in each of the two chambers and the players invert the sandclock
+after each move with a time forfeit indicated by an empty upper chamber.
+Electronic implementation of a physical sandclock may be used. An example
+sandclock specification for a common three minute egg timer sandclock would have
+a tag value of "*180".
+
+Additional TimeControl field kinds will be defined as necessary.
+*/
+
+Datum
+timecontrol_in(PG_FUNCTION_ARGS)
+{
+	char                *str = PG_GETARG_CSTRING(0);
+	char 				cpy[17];
+    char                *p = str;
+    char                *t = str;
+    int                 val;
+    TimeControl         *result = palloc0(sizeof(TimeControl));
+
+    if (strlen(str) > 16)
+        BAD_TYPE_IN("timecontrol", str);
+
+    strcpy(cpy, str);
+
+    // sandclock
+	if(str[0] == '-' && str[1] == '\0') {
+        result->kind = CH_TIME_NONE;
+    } else if(str[0] == '*') {
+
+        if (str2int(&val, ++p, 10)) {
+            BAD_TYPE_IN("timecontrol", str);
+        }
+        if (val > USHRT_MAX)
+            BAD_TYPE_IN("timecontrol", str);
+
+        result->primary = val;
+        result->kind = CH_TIME_SANDCLOCK;
+
+    // seconds with tickback
+    } else if((t = strchr(cpy, '+'))) {
+
+        if (str2int(&val, t, 10)) {
+            BAD_TYPE_IN("timecontrol", str);
+        }
+        if (val > UCHAR_MAX)
+            BAD_TYPE_IN("timecontrol", str);
+        result->secondary = val;
+
+        p = strtok(cpy, "+");
+        if (str2int(&val, p, 10))
+            BAD_TYPE_IN("timecontrol", str);
+        if (val > USHRT_MAX)
+            BAD_TYPE_IN("timecontrol", str);
+
+        result->primary = val;
+        result->kind = CH_TIME_SECS;
+
+
+    // fide type moves
+    } else if((t = strchr(cpy, '/'))) {
+
+        if (str2int(&val, ++t, 10)) {
+            BAD_TYPE_IN("timecontrol", str);
+        }
+        if (val > USHRT_MAX)
+            BAD_TYPE_IN("timecontrol", str);
+        result->primary = val;
+
+        p = strtok(cpy, "/");
+        if (str2int(&val, p, 10))
+            BAD_TYPE_IN("timecontrol", str);
+        if (val > UCHAR_MAX)
+            BAD_TYPE_IN("timecontrol", str);
+
+        result->secondary= val;
+        result->kind = CH_TIME_MOVES;
+
+    //sudden death
+    } else {
+        if (str2int(&val, str, 10))
+            BAD_TYPE_IN("timecontrol", str);
+        result->primary = val;
+        result->kind = CH_TIME_SECS;
+    }
+
+	PG_RETURN_POINTER(result);
+}
+
+Datum
+timecontrol_out(PG_FUNCTION_ARGS)
+{
+	const TimeControl   *control= (TimeControl*)PG_GETARG_POINTER(0);
+	char			    *result = (char *) palloc0(16);
+    char                *p = result;
+
+    if (control->kind == CH_TIME_NONE) {
+        sprintf(p, "-");
+    } else if (control->kind == CH_TIME_MOVES) {
+            sprintf(p, "%d/%d", control->secondary, control->primary);
+    } else if (control->kind == CH_TIME_SANDCLOCK) {
+        sprintf(p, "*%d", control->primary);
+    } else {
+        if (control->secondary) {
+            sprintf(p, "%d+%d", control->primary, control->secondary);
+        } else {
+            sprintf(p, "%d", control->primary);
+        }
+    }
+	PG_RETURN_CSTRING(result);
+}
+/*}}}*/
