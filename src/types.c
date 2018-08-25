@@ -108,9 +108,17 @@ PG_FUNCTION_INFO_V1(move_promotion);
 
 PG_FUNCTION_INFO_V1(ucimove_in);
 PG_FUNCTION_INFO_V1(ucimove_out);
+PG_FUNCTION_INFO_V1(ucimove_from);
+PG_FUNCTION_INFO_V1(ucimove_to);
+PG_FUNCTION_INFO_V1(ucimove_promotion);
 
 PG_FUNCTION_INFO_V1(timecontrol_in);
 PG_FUNCTION_INFO_V1(timecontrol_out);
+
+PG_FUNCTION_INFO_V1(eval_in);
+PG_FUNCTION_INFO_V1(eval_out);
+PG_FUNCTION_INFO_V1(eval_ismate);
+PG_FUNCTION_INFO_V1(eval_value);
 
 /*}}}*/
 /********************************************************
@@ -1221,7 +1229,7 @@ move_promotion(PG_FUNCTION_ARGS)
 /********************************************************
  * 		ucimove
  ********************************************************/
-
+/*{{{*/
 Datum
 ucimove_in(PG_FUNCTION_ARGS)
 {
@@ -1280,6 +1288,29 @@ ucimove_out(PG_FUNCTION_ARGS)
 	PG_RETURN_CSTRING(result);
 }
 
+Datum
+ucimove_from(PG_FUNCTION_ARGS)
+{
+	const UciMove      *move = (UciMove *)PG_GETARG_POINTER(0);
+	PG_RETURN_CHAR(move->from);
+}
+
+Datum
+ucimove_to(PG_FUNCTION_ARGS)
+{
+	const UciMove      *move = (UciMove *)PG_GETARG_POINTER(0);
+	PG_RETURN_CHAR(move->to);
+}
+
+Datum
+ucimove_promotion(PG_FUNCTION_ARGS)
+{
+	const UciMove      *move = (UciMove *)PG_GETARG_POINTER(0);
+    if (!move->promotion)
+        PG_RETURN_NULL();
+    else
+        PG_RETURN_CHAR(move->promotion);
+}/*}}}*/
 /********************************************************
  * 		time_control
  ********************************************************/
@@ -1479,3 +1510,82 @@ timecontrol_out(PG_FUNCTION_ARGS)
 	PG_RETURN_CSTRING(result);
 }
 /*}}}*/
+/********************************************************
+ * 		eval
+ ********************************************************/
+
+Datum
+eval_in(PG_FUNCTION_ARGS)
+{
+	char                *str = PG_GETARG_CSTRING(0);
+    char                *p = str;
+    char                *end;
+    float               result;
+    int                 mate;
+
+    if (p[0]=='#') {
+        CH_NOTICE("pound");
+        p++;
+        if (str2int(&mate, p, 10)) {
+            CH_NOTICE("str2int faild");
+            BAD_TYPE_IN("eval", str);
+        }
+        CH_NOTICE("mate %d", mate);
+        result = (float)((mate < 0 ? -1 : 1) * 1000 + mate);
+    } else {
+        result = strtod(p, &end);
+        if (errno == ERANGE) {
+            CH_NOTICE("error no %d", errno);
+            BAD_TYPE_IN("eval", str);
+        }
+        if (abs(result) >= 1000) {
+            CH_NOTICE("too big");
+            BAD_TYPE_IN("eval", str);
+        }
+        if (!end[0]==0) {
+            CH_NOTICE("extra chars");
+            BAD_TYPE_IN("eval", str);
+        }
+    }
+
+	PG_RETURN_FLOAT4(result);
+}
+
+Datum
+eval_out(PG_FUNCTION_ARGS)
+{
+	const float         eval = PG_GETARG_FLOAT4(0);
+	char			    *result = (char *) palloc0(16);
+    char                *p = result;
+
+    if (abs(eval) >=1000) {
+        (p++)[0] = '#';
+        sprintf(p, "%d", (int)(eval >= 0 ? (eval-1000) : (eval+1000)) );
+
+    } else {
+        sprintf(p, "%f", eval);
+    }
+
+	PG_RETURN_CSTRING(result);
+}
+
+Datum
+eval_ismate(PG_FUNCTION_ARGS)
+{
+	PG_RETURN_BOOL(abs(PG_GETARG_FLOAT4(0)) >= 1000);
+}
+
+Datum
+eval_value(PG_FUNCTION_ARGS)
+{
+
+	const float         eval = PG_GETARG_FLOAT4(0);
+
+    CH_NOTICE("value : %f", eval);
+    if (abs(eval) >=1000) {
+        PG_RETURN_FLOAT4(eval >= 0 ? (eval-1000) : (eval+1000));
+
+    } else {
+        PG_RETURN_FLOAT4(eval);
+    }
+}

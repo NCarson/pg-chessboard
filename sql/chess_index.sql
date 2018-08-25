@@ -15,21 +15,31 @@ END $$;
 /****************************************************************************
 -- util
  ****************************************************************************/
+/****************************************************************************
+-- eval
+ ****************************************************************************/
 /*{{{*/
-CREATE OR REPLACE FUNCTION hamming(INT[], INT[])
-RETURNS INT8 AS '$libdir/chess_index', 'hamming_arr_byvalue' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION eval_in(cstring)
+RETURNS eval AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION hamming(INT8, INT8)
-RETURNS int AS '$libdir/chess_index', 'hamming_int64' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION eval_out(eval)
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
-DROP FUNCTION IF EXISTS jaccard(INT8, INT8);
-CREATE OR REPLACE FUNCTION jaccard(INT8, INT8)
-RETURNS float8 AS '$libdir/chess_index', 'jaccard_uint64' LANGUAGE C IMMUTABLE STRICT;
+CREATE TYPE eval(
+    INPUT          = eval_in,
+    OUTPUT         = eval_out,
 
-DROP FUNCTION IF exists jaccard(INT[], INT[]);
-CREATE OR REPLACE FUNCTION jaccard(INT[], INT[])
-RETURNS float8 AS '$libdir/chess_index', 'jaccard_arr_byvalue' LANGUAGE C IMMUTABLE STRICT;
+    INTERNALLENGTH = 4,     
+    ALIGNMENT      = int4,
+    STORAGE        = PLAIN,
+    PASSEDBYVALUE         
+);
 
+CREATE FUNCTION ismate(eval)
+RETURNS bool AS '$libdir/chess_index', 'eval_ismate' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION VALUE(eval)
+RETURNS REAL AS '$libdir/chess_index', 'eval_value' LANGUAGE C IMMUTABLE STRICT;
 
 /*}}}*/
 /****************************************************************************
@@ -913,6 +923,7 @@ RETURNS text AS '$libdir/chess_index', 'move_san' LANGUAGE C IMMUTABLE STRICT;
 /****************************************************************************
 -- ucimove
 ****************************************************************************/
+/*{{{*/
 CREATE FUNCTION ucimove_in(cstring)
 RETURNS ucimove AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 
@@ -927,6 +938,13 @@ CREATE TYPE ucimove(
 	STORAGE        = PLAIN
 );
 
+CREATE FUNCTION from_(ucimove)
+RETURNS square AS '$libdir/chess_index', 'ucimove_from' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION to_(ucimove)
+RETURNS square AS '$libdir/chess_index', 'ucimove_to' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION promotion(ucimove)
+RETURNS piece AS '$libdir/chess_index', 'ucimove_promotion' LANGUAGE C IMMUTABLE STRICT;
+/*}}}*/
 /****************************************************************************
 -- pfilter
 ****************************************************************************/
