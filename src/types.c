@@ -39,6 +39,8 @@ square numbers
  *      a       b       c       d       e       f       g       h   
  */
 
+board_t * _bitboard_to_board(const Board * b);
+
 /********************************************************
  * 		defines
  ********************************************************/
@@ -111,6 +113,7 @@ PG_FUNCTION_INFO_V1(ucimove_out);
 PG_FUNCTION_INFO_V1(ucimove_from);
 PG_FUNCTION_INFO_V1(ucimove_to);
 PG_FUNCTION_INFO_V1(ucimove_promotion);
+PG_FUNCTION_INFO_V1(ucimove_san);
 
 PG_FUNCTION_INFO_V1(timecontrol_in);
 PG_FUNCTION_INFO_V1(timecontrol_out);
@@ -144,6 +147,8 @@ piece_t _piece_type(const cpiece_t p)
         case BLACK_ROOK:    result=ROOK; break;
         case BLACK_QUEEN:   result=QUEEN; break;
         case BLACK_KING:    result=KING; break;
+        case NO_CPIECE:     result=NO_PIECE; break;
+
         default:
             CH_ERROR("bad cpiece_t: %i", p); break;
     }
@@ -1310,7 +1315,66 @@ ucimove_promotion(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
     else
         PG_RETURN_CHAR(move->promotion);
-}/*}}}*/
+}
+
+Datum
+ucimove_san(PG_FUNCTION_ARGS)
+{
+	const UciMove       *move = (UciMove *)PG_GETARG_POINTER(0);
+    const Board         *b = (Board *)PG_GETARG_POINTER(1); 
+    board_t             *board = _bitboard_to_board(b);
+    piece_t             source = _piece_type(board[move->from]);
+    piece_t             target = _piece_type(board[move->to]);
+    char                *result = palloc(10);
+    char                *p = result;
+
+    pfree(board);
+
+    if (!source)
+        PG_RETURN_NULL();
+
+    if (source== KING) {
+        if (   (move->from == 4 && move->to == 2) 
+            || (move->from == 60 && move->to == 58)) {
+            sprintf(result, "%s", "O-O");
+            PG_RETURN_TEXT_P(cstring_to_text(result));
+        }
+        if (   (move->from == 4 && move->to == 6) 
+            || (move->from == 60 && move->to == 62)) {
+            sprintf(result, "%s", "O-O-O");
+            PG_RETURN_TEXT_P(cstring_to_text(result));
+        }
+
+    } else if (source != PAWN) {
+        result[0] = _piece_char(source);
+        p++;
+    }
+    else if (source == PAWN && target) {
+        result[0] = CHAR_CFILE(move->from);
+        p++;
+    }
+
+    if (target) {
+        p[0] = 'x';
+        p++;
+    }
+
+    _square_out(move->to, p);
+    p = p + 2;
+
+    if (move->promotion) {
+        (p++)[0] = '=';
+        (p++)[0] = _piece_char(move->promotion);
+    }
+
+    (p++)[0] = '\0';
+
+    //XXX Im not sure if this leaks
+    PG_RETURN_TEXT_P(cstring_to_text(result));
+
+}
+
+/*}}}*/
 /********************************************************
  * 		time_control
  ********************************************************/
@@ -1513,7 +1577,7 @@ timecontrol_out(PG_FUNCTION_ARGS)
 /********************************************************
  * 		eval
  ********************************************************/
-
+/*{{{*/
 Datum
 eval_in(PG_FUNCTION_ARGS)
 {
@@ -1588,4 +1652,4 @@ eval_value(PG_FUNCTION_ARGS)
     } else {
         PG_RETURN_FLOAT4(eval);
     }
-}
+}/*}}}*/

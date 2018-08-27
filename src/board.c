@@ -17,6 +17,9 @@
  *
  * This ended up not using the king and en passant tricks for code simplicity
  */
+
+board_t * _bitboard_to_board(const Board * b);
+
 /*-------------------------------------------------------
  -      function info
  -------------------------------------------------------*/
@@ -126,7 +129,7 @@ _copy_board(const Board * a, Board * b)
 
 
 //XXX needs to be pfreed
-static board_t *
+board_t *
 _bitboard_to_board(const Board * b)
 {
 	unsigned char		k=0;

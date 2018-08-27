@@ -921,31 +921,6 @@ CREATE FUNCTION san(MOVE)
 RETURNS text AS '$libdir/chess_index', 'move_san' LANGUAGE C IMMUTABLE STRICT;
 /*}}}*/
 /****************************************************************************
--- ucimove
-****************************************************************************/
-/*{{{*/
-CREATE FUNCTION ucimove_in(cstring)
-RETURNS ucimove AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION ucimove_out(ucimove)
-RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
-
-CREATE TYPE ucimove(
-    INPUT          = ucimove_in,
-    OUTPUT         = ucimove_out,
-    INTERNALLENGTH = 2,    
-	ALIGNMENT      = int2, 
-	STORAGE        = PLAIN
-);
-
-CREATE FUNCTION from_(ucimove)
-RETURNS square AS '$libdir/chess_index', 'ucimove_from' LANGUAGE C IMMUTABLE STRICT;
-CREATE FUNCTION to_(ucimove)
-RETURNS square AS '$libdir/chess_index', 'ucimove_to' LANGUAGE C IMMUTABLE STRICT;
-CREATE FUNCTION promotion(ucimove)
-RETURNS piece AS '$libdir/chess_index', 'ucimove_promotion' LANGUAGE C IMMUTABLE STRICT;
-/*}}}*/
-/****************************************************************************
 -- pfilter
 ****************************************************************************/
 /*{{{*/
@@ -1787,6 +1762,33 @@ CREATE OPERATOR CLASS hash_board_ops
 DEFAULT FOR TYPE board USING hash AS
 OPERATOR        1       = ,
 FUNCTION        1       board_hash(board);/*}}}*/
+/*}}}*/
+/****************************************************************************
+-- ucimove
+****************************************************************************/
+/*{{{*/
+CREATE FUNCTION ucimove_in(cstring)
+RETURNS ucimove AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION ucimove_out(ucimove)
+RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE ucimove(
+    INPUT          = ucimove_in,
+    OUTPUT         = ucimove_out,
+    INTERNALLENGTH = 2,    
+	ALIGNMENT      = int2, 
+	STORAGE        = PLAIN
+);
+
+CREATE FUNCTION from_(ucimove)
+RETURNS square AS '$libdir/chess_index', 'ucimove_from' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION to_(ucimove)
+RETURNS square AS '$libdir/chess_index', 'ucimove_to' LANGUAGE C IMMUTABLE STRICT;/*{{{*/
+CREATE FUNCTION promotion(ucimove)/*}}}*/
+RETURNS piece AS '$libdir/chess_index', 'ucimove_promotion' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION san(ucimove, board)
+RETURNS TEXT AS '$libdir/chess_index', 'ucimove_san' LANGUAGE C IMMUTABLE STRICT;
 /*}}}*/
 /****************************************************************************
 -- sql functions
