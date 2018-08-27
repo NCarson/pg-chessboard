@@ -45,7 +45,7 @@ bash doc/makedoc.sh
 
 if [[ "$GAMES" -eq 1 ]]; then
     cd $GAMES_DIREC && make DATA_DIR="./data/test" DB="$DB"
-    cd $SCIPY_DIREC && make USER=$USER DB=$DB
+    #cd $SCIPY_DIREC && make USER=$USER DB=$DB
 else
     psql -d $DB  -c 'drop extension if exists chess_index'
     psql -d $DB  -c 'create extension chess_index'

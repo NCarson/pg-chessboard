@@ -1323,50 +1323,41 @@ ucimove_san(PG_FUNCTION_ARGS)
 	const UciMove       *move = (UciMove *)PG_GETARG_POINTER(0);
     const Board         *b = (Board *)PG_GETARG_POINTER(1); 
     board_t             *board = _bitboard_to_board(b);
-    piece_t             source = _piece_type(board[move->from]);
-    piece_t             target = _piece_type(board[move->to]);
+    piece_t             source = _piece_type(board[FROM_BB_IDX(move->from)]);
+    piece_t             target = _piece_type(board[FROM_BB_IDX(move->to)]);
     char                *result = palloc(10);
     char                *p = result;
 
     pfree(board);
 
-    if (!source)
+    if (!source) {
         PG_RETURN_NULL();
+    }
 
-    if (source== KING) {
-        if (   (move->from == 4 && move->to == 2) 
-            || (move->from == 60 && move->to == 58)) {
-            sprintf(result, "%s", "O-O");
-            PG_RETURN_TEXT_P(cstring_to_text(result));
+    if (source== KING && ((move->from == 4 && move->to == 2) || (move->from == 60 && move->to == 58))) {
+            sprintf(p, "%s", "O-O-O\0");
+        PG_RETURN_TEXT_P(cstring_to_text(result));
+    } else if (source== KING && ((move->from == 4 && move->to == 6) || (move->from == 60 && move->to == 62))) {
+        sprintf(p, "%s", "O-O\0");
+        PG_RETURN_TEXT_P(cstring_to_text(result));
+    } else if (source == PAWN) {
+        if (target) {
+            (p++)[0] = CHAR_CFILE(move->from);
+            (p++)[0] = 'x';
         }
-        if (   (move->from == 4 && move->to == 6) 
-            || (move->from == 60 && move->to == 62)) {
-            sprintf(result, "%s", "O-O-O");
-            PG_RETURN_TEXT_P(cstring_to_text(result));
+        _square_out(move->to, p);
+        p = p + 2;
+        if (move->promotion) {
+            (p++)[0] = '=';
+            (p++)[0] = _piece_char(move->promotion);
         }
-
-    } else if (source != PAWN) {
-        result[0] = _piece_char(source);
-        p++;
+    } else {
+        (p++)[0] = _piece_char(source);
+        if (target)
+            (p++)[0] = 'x';
+        _square_out(move->to, p);
+        p = p + 2;
     }
-    else if (source == PAWN && target) {
-        result[0] = CHAR_CFILE(move->from);
-        p++;
-    }
-
-    if (target) {
-        p[0] = 'x';
-        p++;
-    }
-
-    _square_out(move->to, p);
-    p = p + 2;
-
-    if (move->promotion) {
-        (p++)[0] = '=';
-        (p++)[0] = _piece_char(move->promotion);
-    }
-
     (p++)[0] = '\0';
 
     //XXX Im not sure if this leaks
