@@ -1259,6 +1259,45 @@ board_ucimove(PG_FUNCTION_ARGS)
     
 }
 
+/*
+static void
+_arr_board_ucimoves(PG_FUNCTION_ARGS, Board *b, const Datum * d, bool * nulls, const size_t len)
+{
+
+   for (int i=0; i<len; i++){
+       if (nulls[i])
+           continue;
+       //d[i]
+
+        if (old[to] && old[from]) {
+            pcount--;
+        }
+        if (!old[to] && !old[from]) {
+            pcount--;
+        }
+
+        result->pcount = pcount;
+        old[to] = old[from];
+        old[from] = NO_CPIECE;
+   }
+}
+
+Datum
+board_ucimoves(PG_FUNCTION_ARGS)
+{
+	Datum 				*d=0;
+	bool 				*nulls=0;
+    int                  len;
+    Board               *result;
+
+    len_a = _get_array_arg(PG_FUNCTION_ARGS_CALL, 0, &d, &nulls);
+    _arr_board_ucimoves(result, d, nulls, len);
+
+    PG_RETURN_POINTER(result);
+
+}
+*/
+
 Datum
 heatmap(PG_FUNCTION_ARGS)
 {
