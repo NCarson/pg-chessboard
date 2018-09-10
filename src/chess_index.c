@@ -254,69 +254,8 @@ char _adiagonal_in(char square)
     return d;
 }
 /*}}}*/
-/********************************************************
-* 		debug
-********************************************************/
-/*{{{*/
-
-void debug_bitboard(const bitboard_t b)
-{
-    char            str[100];
-    int             j = 0;
-
-    for (int i=0; i<SQUARE_MAX; i++) {
-        if (i && !(i%8)) {
-            str[j++] = '\0';
-            CH_NOTICE("bboard: %s", str);
-            j = 0;
-        }
-        if (CHECK_BIT(b, SQUARE_MAX-i-1))
-            str[j++] = 'x';
-        else
-            str[j++] = '.';
-    }
-    str[j++] = '\0';
-    CH_NOTICE("bboard: %s", str);
-}
-
-void debug_board(const board_t * b)
-{
-
-    char            str[100];
-    int             j = 0;
-
-    for (int i=0; i<SQUARE_MAX; i++) {
-        if (i && !(i%8)) {
-            CH_NOTICE("board:  %s", str);
-            j = 0;
-        }
-        if (b[i] == NO_CPIECE)
-            str[j++] = '.';
-        else
-            str[j++] = _cpiece_char(b[i]);
-    }
-    str[j++] = '\0';
-    CH_NOTICE("board:  %s", str);
-}
-
-void debug_bits(uint64 a, unsigned char bits) {
-
-    char            *str = (char *) palloc(bits+1);
-    int             cnt=bits-1;
-    uint64           b = a;
-
-    str += (bits- 1);
-	while (cnt >=0) {
-          str[cnt] = (b & 1) + '0';
-          b >>= 1;
-	     cnt--;
-	}
-	str[bits] = '\0';
-	CH_NOTICE("bits: int:%ld: bits:|%s|", a, str);
-}
 
 
-/*}}}*/
 
 
 int

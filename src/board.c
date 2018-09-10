@@ -69,6 +69,7 @@ PG_FUNCTION_INFO_V1(board_moveless);
 PG_FUNCTION_INFO_V1(board_clr_enpassant);
 PG_FUNCTION_INFO_V1(board_invert);
 PG_FUNCTION_INFO_V1(piecesquares_board);
+PG_FUNCTION_INFO_V1(board_ucimove);
 
 static void _board_footer_in(Board * b, char * str);
 
@@ -95,6 +96,65 @@ static int _board_out(const Board * b, char * str);
 static char _board_cpiece_min_rank(const board_t * , const char, const cpiece_t );
 
  /*}}}*/
+/*-------------------------------------------------------
+ -      debug funcs
+ -------------------------------------------------------*/
+/*{{{*/
+void debug_bitboard(const bitboard_t b)
+{
+    char            str[100];
+    int             j = 0;
+
+    for (int i=0; i<SQUARE_MAX; i++) {
+        if (i && !(i%8)) {
+            str[j++] = '\0';
+            CH_NOTICE("bboard: %s", str);
+            j = 0;
+        }
+        if (CHECK_BIT(b, SQUARE_MAX-i-1))
+            str[j++] = 'x';
+        else
+            str[j++] = '.';
+    }
+    str[j++] = '\0';
+    CH_NOTICE("bboard: %s", str);
+}
+
+void debug_board(const board_t * b)
+{
+
+    char            str[100];
+    int             j = 0;
+
+    for (int i=0; i<SQUARE_MAX; i++) {
+        if (i && !(i%8)) {
+            CH_NOTICE("board:  %s", str);
+            j = 0;
+        }
+        if (b[i] == NO_CPIECE)
+            str[j++] = '.';
+        else
+            str[j++] = _cpiece_char(b[i]);
+    }
+    str[j++] = '\0';
+    CH_NOTICE("board:  %s", str);
+}
+
+void debug_bits(uint64 a, unsigned char bits) {
+
+    char            *str = (char *) palloc(bits+1);
+    int             cnt=bits-1;
+    uint64           b = a;
+
+    str += (bits- 1);
+	while (cnt >=0) {
+          str[cnt] = (b & 1) + '0';
+          b >>= 1;
+	     cnt--;
+	}
+	str[bits] = '\0';
+	CH_NOTICE("bits: int:%ld: bits:|%s|", a, str);
+}/*}}}*/
 /*-------------------------------------------------------
  -      static
  -------------------------------------------------------*/
@@ -163,6 +223,7 @@ _board_to_bits_piece(const Board * b, const cpiece_t piece)
     return bboard;
 }
 
+//XXX merge with below
 static bitboard_t
 _board_to_bits(const Board * b)
 {
@@ -177,6 +238,21 @@ _board_to_bits(const Board * b)
     pfree(board);
     return bboard;
 }
+
+/*
+static bitboard_t
+_boardt_to_bits(const board_t * b)
+{
+    bitboard_t          bboard=0;
+
+    for (int i=0; i<SQUARE_MAX; i++)
+    {
+        if (b[i])
+            SET_BIT64(bboard, SQUARE_MAX-1-i);
+    }
+    return bboard;
+}
+*/
 
 Datum
 board_to_int(PG_FUNCTION_ARGS)
@@ -1114,7 +1190,7 @@ board_invert(PG_FUNCTION_ARGS)
     Board           *result;
     board_t         *old = _bitboard_to_board(b);
     board_t         *new = palloc0(SQUARE_MAX);
-    cpiece_t        p;
+    cpiece_t         p;
 
     INIT_BOARD(result, b->pcount);
     _copy_board(b, result);
@@ -1125,7 +1201,7 @@ board_invert(PG_FUNCTION_ARGS)
             p = old[i] + 6;
         else
             p = old[i] - 6;
-        // board is in square idx so we dont
+        //XXX board is in square idx ???(!no) so we dont
         // need to anything to invert
         // as _set_pieces will do the work for us
         new[i] = p;
@@ -1137,6 +1213,50 @@ board_invert(PG_FUNCTION_ARGS)
     pfree(old);
     pfree(new);
     PG_RETURN_POINTER(result);
+}
+
+//XXX this does not set enpassant
+Datum
+board_ucimove(PG_FUNCTION_ARGS)
+{
+    const UciMove       *move  = (UciMove*)PG_GETARG_POINTER(0);
+    const Board         *b = (Board *)PG_GETARG_POINTER(1);
+    size_t               pcount = b->pcount;
+    int                  to = FROM_BB_IDX(move->to);
+    int                  from = FROM_BB_IDX(move->from);
+    board_t             *old = _bitboard_to_board(b);
+    Board               *result;
+
+    if (old[to] && old[from]) {
+        pcount--;
+    }
+    //XXX should moving empty squares raise an error?
+    if (!old[to] && !old[from]) {
+        pcount--;
+    }
+    INIT_BOARD(result, pcount);
+
+    result->pcount = pcount;
+    old[to] = old[from];
+    old[from] = NO_CPIECE;
+
+    //result->board = _set_pieces(old, result->pieces);
+    //FIXME make this the main _set_pieces
+    result->board=0;
+    for (int i=0, k=0; i<SQUARE_MAX; i++) {
+        if (old[i] != NO_CPIECE) {
+            SET_BIT64(result->board, TO_SQUARE_IDX(FROM_BB_IDX(i)));
+            SET_PIECE(result->pieces, k, old[i]);
+            k++;
+        }
+    }
+
+    result->blacksgo = b->blacksgo ? 0 : 1;
+    result->move = b->move + (b->blacksgo ? 1 : 0);
+
+    pfree(old);
+    PG_RETURN_POINTER(result);
+    
 }
 
 Datum
@@ -1453,6 +1573,7 @@ piecesquares_board(PG_FUNCTION_ARGS)
 
     PG_RETURN_POINTER(board);
 }
+
 
 /*}}}*/
 

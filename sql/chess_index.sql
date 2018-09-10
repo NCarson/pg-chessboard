@@ -1776,19 +1776,125 @@ RETURNS cstring AS '$libdir/chess_index' LANGUAGE C IMMUTABLE STRICT;
 CREATE TYPE ucimove(
     INPUT          = ucimove_in,
     OUTPUT         = ucimove_out,
+    LIKE           = int2,
     INTERNALLENGTH = 2,    
 	ALIGNMENT      = int2, 
 	STORAGE        = PLAIN
 );
 
+CREATE CAST (int2 AS ucimove) WITHOUT FUNCTION;
+CREATE CAST (ucimove AS int2) WITHOUT FUNCTION;
+
+CREATE FUNCTION ucimove_eq(ucimove, ucimove)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2eq';
+CREATE FUNCTION ucimove_ne(ucimove, ucimove)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2ne';
+CREATE FUNCTION ucimove_lt(ucimove, ucimove)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2lt';
+CREATE FUNCTION ucimove_le(ucimove, ucimove)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2le';
+CREATE FUNCTION ucimove_gt(ucimove, ucimove)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2gt';
+CREATE FUNCTION ucimove_ge(ucimove, ucimove)
+RETURNS boolean LANGUAGE internal IMMUTABLE as 'int2ge';
+CREATE FUNCTION ucimove_cmp(ucimove, ucimove)
+RETURNS integer LANGUAGE internal IMMUTABLE AS 'btint2cmp';
+CREATE FUNCTION hash_ucimove(ucimove)
+RETURNS integer LANGUAGE internal IMMUTABLE AS 'hashint2';
+
+CREATE OPERATOR = (
+    LEFTARG = ucimove,
+    RIGHTARG = ucimove,
+    PROCEDURE = ucimove_eq,
+    COMMUTATOR = '=',
+    NEGATOR = '<>',
+    RESTRICT = eqsel,
+    JOIN = eqjoinsel,
+    HASHES, MERGES
+);
+
+CREATE OPERATOR <> (
+    LEFTARG = ucimove,
+    RIGHTARG = ucimove,
+    PROCEDURE = ucimove_ne,
+    COMMUTATOR = '<>',
+    NEGATOR = '=',
+    RESTRICT = neqsel,
+    JOIN = neqjoinsel
+);
+
+CREATE OPERATOR < (
+  LEFTARG = ucimove,
+  RIGHTARG = ucimove,
+  PROCEDURE = ucimove_lt,
+  COMMUTATOR = > ,
+  NEGATOR = >= ,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR <= (
+  LEFTARG = ucimove,
+  RIGHTARG = ucimove,
+  PROCEDURE = ucimove_le,
+  COMMUTATOR = >= ,
+  NEGATOR = > ,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR > (
+  LEFTARG = ucimove,
+  RIGHTARG = ucimove,
+  PROCEDURE = ucimove_gt,
+  COMMUTATOR = < ,
+  NEGATOR = <= ,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR >= (
+  LEFTARG = ucimove,
+  RIGHTARG = ucimove,
+  PROCEDURE = ucimove_ge,
+  COMMUTATOR = <= ,
+  NEGATOR = < ,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR CLASS btree_ucimove_ops
+DEFAULT FOR TYPE ucimove USING btree
+AS
+        OPERATOR        1       <  ,
+        OPERATOR        2       <= ,
+        OPERATOR        3       =  ,
+        OPERATOR        4       >= ,
+        OPERATOR        5       >  ,
+        FUNCTION        1       ucimove_cmp(ucimove, ucimove);
+
+CREATE OPERATOR CLASS hash_ucimove_ops
+DEFAULT FOR TYPE ucimove USING hash AS
+OPERATOR        1       = ,
+FUNCTION        1       hash_ucimove(ucimove);
+
+-----
+
 CREATE FUNCTION from_(ucimove)
 RETURNS square AS '$libdir/chess_index', 'ucimove_from' LANGUAGE C IMMUTABLE STRICT;
+
 CREATE FUNCTION to_(ucimove)
-RETURNS square AS '$libdir/chess_index', 'ucimove_to' LANGUAGE C IMMUTABLE STRICT;/*{{{*/
-CREATE FUNCTION promotion(ucimove)/*}}}*/
+RETURNS square AS '$libdir/chess_index', 'ucimove_to' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION promotion(ucimove)
 RETURNS piece AS '$libdir/chess_index', 'ucimove_promotion' LANGUAGE C IMMUTABLE STRICT;
+
 CREATE FUNCTION san(ucimove, board)
 RETURNS TEXT AS '$libdir/chess_index', 'ucimove_san' LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION move(ucimove, board)
+RETURNS board AS '$libdir/chess_index', 'board_ucimove' LANGUAGE C IMMUTABLE STRICT;
+
 /*}}}*/
 /****************************************************************************
 -- sql functions
