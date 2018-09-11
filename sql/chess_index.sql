@@ -1895,6 +1895,9 @@ RETURNS TEXT AS '$libdir/chess_index', 'ucimove_san' LANGUAGE C IMMUTABLE STRICT
 CREATE FUNCTION move(ucimove, board)
 RETURNS board AS '$libdir/chess_index', 'board_ucimove' LANGUAGE C IMMUTABLE STRICT;
 
+CREATE FUNCTION move(ucimove[], board)
+RETURNS board AS '$libdir/chess_index', 'board_ucimoves' LANGUAGE C IMMUTABLE STRICT;
+
 /*}}}*/
 /****************************************************************************
 -- sql functions

@@ -70,6 +70,7 @@ PG_FUNCTION_INFO_V1(board_clr_enpassant);
 PG_FUNCTION_INFO_V1(board_invert);
 PG_FUNCTION_INFO_V1(piecesquares_board);
 PG_FUNCTION_INFO_V1(board_ucimove);
+PG_FUNCTION_INFO_V1(board_ucimoves);
 
 static void _board_footer_in(Board * b, char * str);
 
@@ -687,7 +688,7 @@ Datum
 board_in(PG_FUNCTION_ARGS)
 {
     char 			*str = PG_GETARG_CSTRING(0);
-    Board           *result;
+    Board           *result=0;
     pieces_t        pieces[PIECES_MAX];
     unsigned char   c, p='\0';
     int64           bitboard=0;
@@ -1228,8 +1229,6 @@ board_ucimove(PG_FUNCTION_ARGS)
     board_t             *old = _bitboard_to_board(b);
     Board               *result;
 
-    CH_NOTICE("from:%d, to:%d", from , to);
-
     if (old[to] && old[from]) {
         pcount--;
     }
@@ -1262,27 +1261,50 @@ board_ucimove(PG_FUNCTION_ARGS)
     
 }
 
-/*
-static void
-_arr_board_ucimoves(PG_FUNCTION_ARGS, Board *b, const Datum * d, bool * nulls, const size_t len)
+static Board *
+_arr_board_ucimoves(PG_FUNCTION_ARGS, const Board *b, const Datum * d, bool * nulls, const size_t len)
 {
 
-   for (int i=0; i<len; i++){
+    uci_t                from, to;
+    board_t             *old = _bitboard_to_board(b);
+    Board               *result;
+
+    INIT_BOARD(result, b->pcount);
+    result->pcount = b->pcount;
+
+    for (int i=0; i<len; i++){
        if (nulls[i])
            continue;
-       //d[i]
+
+        from = FROM_BB_IDX(GET_UCI_FROM(d[i]));
+        to = FROM_BB_IDX(GET_UCI_TO(d[i]));
 
         if (old[to] && old[from]) {
-            pcount--;
+            result->pcount--;
         }
         if (!old[to] && !old[from]) {
-            pcount--;
+            result->pcount--;
         }
 
-        result->pcount = pcount;
         old[to] = old[from];
         old[from] = NO_CPIECE;
+
+        //result->blacksgo = b->blacksgo ? 0 : 1;
+        //result->move = b->move + (b->blacksgo ? 1 : 0);
    }
+
+    //FIXME make this the main _set_pieces
+    result->board=0;
+    for (int i=0, k=0; i<SQUARE_MAX; i++) {
+        if (old[i] != NO_CPIECE) {
+            SET_BIT64(result->board, TO_SQUARE_IDX(FROM_BB_IDX(i)));
+            SET_PIECE(result->pieces, k, old[i]);
+            k++;
+        }
+    }
+
+    pfree(old);
+    return result;
 }
 
 Datum
@@ -1292,14 +1314,14 @@ board_ucimoves(PG_FUNCTION_ARGS)
 	bool 				*nulls=0;
     int                  len;
     Board               *result;
+    const Board         *b = (Board *) PG_GETARG_POINTER(1);
 
-    len_a = _get_array_arg(PG_FUNCTION_ARGS_CALL, 0, &d, &nulls);
-    _arr_board_ucimoves(result, d, nulls, len);
+    len = _get_array_arg(PG_FUNCTION_ARGS_CALL, 0, &d, &nulls);
+    result = _arr_board_ucimoves(PG_FUNCTION_ARGS_CALL, b, d, nulls, len);
 
     PG_RETURN_POINTER(result);
 
 }
-*/
 
 Datum
 heatmap(PG_FUNCTION_ARGS)
