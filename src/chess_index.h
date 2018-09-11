@@ -101,6 +101,31 @@
 #define SET_PS_KIND(i16, k)     ((i16) = ((k)<<6) | (i16))
 #define SET_PS_SUBJECT(i16, p)  ((i16) = ((p)<<12) | (i16) )
 
+// ucimove type
+/* +------+------+------+------+------+------+------+------+
+ * | BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6 | BIT7 |
+ * +------+------+------+------+------+------+------+------+
+ * |                  from                   |     to      |
+ * |                                         |             |
+ * +------+------+------+------+------+------+------+------+
+ * +------+------+------+------+------+------+------+------+
+ * | BIT8 | BIT9 | BIT10| BIT11| BIT12| BIT13| BIT14| BIT15|
+ * +------+------+------+------+------+------+------+------+
+ * |           to cont...      |       promotion    |      |
+ * |                           |                    |      |
+ * +------+------+------+------+------+------+------+------+
+ */
+
+#define UCI_FROM_MASK   63
+#define UCI_TO_MASK     4032
+#define UCI_PROM_MASK   61440
+
+#define GET_UCI_FROM(i16)       ((i16) & UCI_FROM_MASK)
+#define GET_UCI_TO(i16)         (((i16) & UCI_TO_MASK) >>6)
+#define GET_UCI_PROM(i16)       (((i16) & UCI_PROM_MASK) >>12)
+
+#define INIT_UCI(i16, f, t, p)  do {i16=0; ((i16) = ((p)<<12) | ((t)<<6) | (f)); } while(0)
+
 // board type
 //
 //XXX CHECK_BIT should start at SQUARE_MAX and decrement to be meaningful TO_SQUARE_IDX & TO_BB_IDX
@@ -130,6 +155,7 @@
 typedef                 uint64          bitboard_t; // for Board type storage
 typedef                 unsigned char   pieces_t;   // nibbles of bytes for piece storage board
 typedef                 unsigned char   board_t;    // for use with cpiece
+typedef                 uint16          uci_t;    // ucimove
 
 typedef enum            {BLACK, WHITE} side_t;
 
@@ -155,13 +181,6 @@ typedef struct {
     unsigned char       piece: 3; 
     unsigned char       promotion: 3; 
 } Move;
-
-typedef struct {
-    unsigned short      from : 6;
-    unsigned short      to : 6;
-    unsigned short      promotion: 3; 
-} UciMove;
-
 
 typedef enum            {CH_TIME_NONE, CH_TIME_MOVES, CH_TIME_SECS, CH_TIME_SANDCLOCK} t_chess_time;
 

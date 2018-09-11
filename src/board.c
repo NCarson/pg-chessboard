@@ -1216,16 +1216,19 @@ board_invert(PG_FUNCTION_ARGS)
 }
 
 //XXX this does not set enpassant
+//FIXME handle promotion
 Datum
 board_ucimove(PG_FUNCTION_ARGS)
 {
-    const UciMove       *move  = (UciMove*)PG_GETARG_POINTER(0);
+    const uci_t          move  = PG_GETARG_UINT16(0);
     const Board         *b = (Board *)PG_GETARG_POINTER(1);
     size_t               pcount = b->pcount;
-    int                  to = FROM_BB_IDX(move->to);
-    int                  from = FROM_BB_IDX(move->from);
+    int                  to = FROM_BB_IDX(GET_UCI_TO(move));
+    int                  from = FROM_BB_IDX(GET_UCI_FROM(move));
     board_t             *old = _bitboard_to_board(b);
     Board               *result;
+
+    CH_NOTICE("from:%d, to:%d", from , to);
 
     if (old[to] && old[from]) {
         pcount--;

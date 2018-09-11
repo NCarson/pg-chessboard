@@ -1241,7 +1241,8 @@ ucimove_in(PG_FUNCTION_ARGS)
 	const char 		    *str = PG_GETARG_CSTRING(0);
     char                *cpy = palloc(6);
     const char          *p = cpy;
-    UciMove             *result = (UciMove *) palloc0(sizeof(UciMove));
+    uci_t               result=0;
+    int                 prom=0;
     size_t              i = strlen(str) - 1;
 
 
@@ -1250,19 +1251,18 @@ ucimove_in(PG_FUNCTION_ARGS)
 
     cpy = strcpy(cpy, str);
     if (_soft_piece_in(cpy[i])) {
-        result->promotion = _soft_piece_in(cpy[i]);
+        prom = _soft_piece_in(cpy[i]);
         cpy[i--] = '\0';
     }
 
-    if (result->promotion == PAWN) {
+    if (prom == PAWN) {
         BAD_TYPE_IN("ucimove", str); 
     }
     if (strlen(p+4)) {
         BAD_TYPE_IN("ucimove", str); 
     }
 
-    result->from = _square_in(p[0], p[1]);
-    result->to = _square_in(p[2], p[3]);
+    INIT_UCI(result, _square_in(p[0], p[1]), _square_in(p[2], p[3]), prom);
 
     pfree(cpy);
 	PG_RETURN_POINTER(result);
@@ -1272,7 +1272,7 @@ Datum
 ucimove_out(PG_FUNCTION_ARGS)
 {
 
-	const UciMove   *move = (UciMove *)PG_GETARG_POINTER(0);
+	const uci_t     move = PG_GETARG_UINT16(0);
 	char			*result = (char *) palloc0(6);
     char            *p = result;
 
@@ -1280,13 +1280,13 @@ ucimove_out(PG_FUNCTION_ARGS)
      * promotion: e7xd8Q+
      * */
 
-    _square_out(move->from, p);
+    _square_out(GET_UCI_FROM(move), p);
     p = p + 2;
-    _square_out(move->to, p);
+    _square_out(GET_UCI_TO(move), p);
     p = p + 2;
 
-    if (move->promotion)
-        (p++)[0] = _piece_char(move->promotion);
+    if (GET_UCI_PROM(move))
+        (p++)[0] = _piece_char(GET_UCI_PROM(move));
 
     (p++)[0] = '\0';
 
@@ -1296,35 +1296,38 @@ ucimove_out(PG_FUNCTION_ARGS)
 Datum
 ucimove_from(PG_FUNCTION_ARGS)
 {
-	const UciMove      *move = (UciMove *)PG_GETARG_POINTER(0);
-	PG_RETURN_CHAR(move->from);
+	const uci_t     move = PG_GETARG_UINT16(0);
+	PG_RETURN_CHAR(GET_UCI_FROM(move));
 }
 
 Datum
 ucimove_to(PG_FUNCTION_ARGS)
 {
-	const UciMove      *move = (UciMove *)PG_GETARG_POINTER(0);
-	PG_RETURN_CHAR(move->to);
+	const uci_t     move = PG_GETARG_UINT16(0);
+	PG_RETURN_CHAR(GET_UCI_TO(move));
 }
 
 Datum
 ucimove_promotion(PG_FUNCTION_ARGS)
 {
-	const UciMove      *move = (UciMove *)PG_GETARG_POINTER(0);
-    if (!move->promotion)
+	const uci_t     move = PG_GETARG_UINT16(0);
+    if (!GET_UCI_PROM(move))
         PG_RETURN_NULL();
     else
-        PG_RETURN_CHAR(move->promotion);
+        PG_RETURN_CHAR(GET_UCI_PROM(move));
 }
 
 Datum
 ucimove_san(PG_FUNCTION_ARGS)
 {
-	const UciMove       *move = (UciMove *)PG_GETARG_POINTER(0);
+	const uci_t         move = PG_GETARG_UINT16(0);
     const Board         *b = (Board *)PG_GETARG_POINTER(1); 
     board_t             *board = _bitboard_to_board(b);
-    piece_t             source = _piece_type(board[FROM_BB_IDX(move->from)]);
-    piece_t             target = _piece_type(board[FROM_BB_IDX(move->to)]);
+    uci_t               from = GET_UCI_FROM(move);
+    uci_t               to = GET_UCI_TO(move);
+    piece_t             promotion = GET_UCI_PROM(move);
+    piece_t             source = _piece_type(board[FROM_BB_IDX(from)]);
+    piece_t             target = _piece_type(board[FROM_BB_IDX(to)]);
     char                *result = palloc(10);
     char                *p = result;
 
@@ -1334,28 +1337,28 @@ ucimove_san(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
     }
 
-    if (source== KING && ((move->from == 4 && move->to == 2) || (move->from == 60 && move->to == 58))) {
+    if (source== KING && ((from == 4 && to == 2) || (from == 60 && to == 58))) {
             sprintf(p, "%s", "O-O-O\0");
         PG_RETURN_TEXT_P(cstring_to_text(result));
-    } else if (source== KING && ((move->from == 4 && move->to == 6) || (move->from == 60 && move->to == 62))) {
+    } else if (source== KING && ((from == 4 && to == 6) || (from == 60 && to == 62))) {
         sprintf(p, "%s", "O-O\0");
         PG_RETURN_TEXT_P(cstring_to_text(result));
     } else if (source == PAWN) {
         if (target) {
-            (p++)[0] = CHAR_CFILE(move->from);
+            (p++)[0] = CHAR_CFILE(from);
             (p++)[0] = 'x';
         }
-        _square_out(move->to, p);
+        _square_out(to, p);
         p = p + 2;
-        if (move->promotion) {
+        if (promotion) {
             (p++)[0] = '=';
-            (p++)[0] = _piece_char(move->promotion);
+            (p++)[0] = _piece_char(promotion);
         }
     } else {
         (p++)[0] = _piece_char(source);
         if (target)
             (p++)[0] = 'x';
-        _square_out(move->to, p);
+        _square_out(to, p);
         p = p + 2;
     }
     (p++)[0] = '\0';
