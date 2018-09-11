@@ -1216,34 +1216,59 @@ board_invert(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(result);
 }
 
-//XXX this does not set enpassant
-//FIXME handle promotion
+//FIXME needs enpassant 
+//FIXME needs castling rights
+//FIXME does not promote
+static Board *
+_make_move(const uci_t move, Board * result, board_t * old)
+{
+    int         from = FROM_BB_IDX(GET_UCI_FROM(move));
+    int         to = FROM_BB_IDX(GET_UCI_TO(move));
+    int         f = GET_UCI_FROM(move);
+    int         t = GET_UCI_TO(move);
+
+    if (!old[from]) {
+        CH_ERROR("no piece on square %d", f);
+    }
+    if (old[to]) {
+        result->pcount--;
+    }
+
+    if (f == 4 && t == 2) {
+        old[3] = old[0];
+        old[0] = NO_CPIECE;
+    } else if (f == 4 && t == 6) {
+        old[5] = old[7];
+        old[7] = NO_CPIECE;
+    } else if (f == 60 && t == 58) {
+        old[59] = old[56];
+        old[56] = NO_CPIECE;
+    } else if (f == 60 && t == 62) {
+        old[61] = old[63];
+        old[63] = NO_CPIECE;
+    }
+
+    old[to] = old[from];
+    old[from] = NO_CPIECE;
+
+    result->blacksgo = result->blacksgo ? 0 : 1;
+    result->move = result->move + (result->blacksgo ? 1 : 0);
+    return result;
+    
+}
+
 Datum
 board_ucimove(PG_FUNCTION_ARGS)
 {
     const uci_t          move  = PG_GETARG_UINT16(0);
     const Board         *b = (Board *)PG_GETARG_POINTER(1);
-    size_t               pcount = b->pcount;
-    int                  to = FROM_BB_IDX(GET_UCI_TO(move));
-    int                  from = FROM_BB_IDX(GET_UCI_FROM(move));
     board_t             *old = _bitboard_to_board(b);
     Board               *result;
 
-    if (old[to] && old[from]) {
-        pcount--;
-    }
-    //XXX should moving empty squares raise an error?
-    if (!old[to] && !old[from]) {
-        pcount--;
-    }
-    INIT_BOARD(result, pcount);
+    INIT_BOARD(result, b->pcount);
+    result->pcount = b->pcount;
+    result = _make_move(move, result, old);
 
-    result->pcount = pcount;
-    old[to] = old[from];
-    old[from] = NO_CPIECE;
-
-    //result->board = _set_pieces(old, result->pieces);
-    //FIXME make this the main _set_pieces
     result->board=0;
     for (int i=0, k=0; i<SQUARE_MAX; i++) {
         if (old[i] != NO_CPIECE) {
@@ -1253,21 +1278,18 @@ board_ucimove(PG_FUNCTION_ARGS)
         }
     }
 
-    result->blacksgo = b->blacksgo ? 0 : 1;
-    result->move = b->move + (b->blacksgo ? 1 : 0);
-
     pfree(old);
     PG_RETURN_POINTER(result);
     
 }
 
+
 static Board *
 _arr_board_ucimoves(PG_FUNCTION_ARGS, const Board *b, const Datum * d, bool * nulls, const size_t len)
 {
 
-    uci_t                from, to;
-    board_t             *old = _bitboard_to_board(b);
     Board               *result;
+    board_t             *old = _bitboard_to_board(b);
 
     INIT_BOARD(result, b->pcount);
     result->pcount = b->pcount;
@@ -1275,22 +1297,8 @@ _arr_board_ucimoves(PG_FUNCTION_ARGS, const Board *b, const Datum * d, bool * nu
     for (int i=0; i<len; i++){
        if (nulls[i])
            continue;
+       result = _make_move(d[i], result, old);
 
-        from = FROM_BB_IDX(GET_UCI_FROM(d[i]));
-        to = FROM_BB_IDX(GET_UCI_TO(d[i]));
-
-        if (old[to] && old[from]) {
-            result->pcount--;
-        }
-        if (!old[to] && !old[from]) {
-            result->pcount--;
-        }
-
-        old[to] = old[from];
-        old[from] = NO_CPIECE;
-
-        //result->blacksgo = b->blacksgo ? 0 : 1;
-        //result->move = b->move + (b->blacksgo ? 1 : 0);
    }
 
     //FIXME make this the main _set_pieces
@@ -1310,13 +1318,12 @@ _arr_board_ucimoves(PG_FUNCTION_ARGS, const Board *b, const Datum * d, bool * nu
 Datum
 board_ucimoves(PG_FUNCTION_ARGS)
 {
+    const Board         *b = (Board *) PG_GETARG_POINTER(1);
 	Datum 				*d=0;
 	bool 				*nulls=0;
-    int                  len;
+    int                  len = _get_array_arg(PG_FUNCTION_ARGS_CALL, 0, &d, &nulls);
     Board               *result;
-    const Board         *b = (Board *) PG_GETARG_POINTER(1);
 
-    len = _get_array_arg(PG_FUNCTION_ARGS_CALL, 0, &d, &nulls);
     result = _arr_board_ucimoves(PG_FUNCTION_ARGS_CALL, b, d, nulls, len);
 
     PG_RETURN_POINTER(result);
